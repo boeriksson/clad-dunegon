@@ -5,7 +5,6 @@ using UnityEngine;
 public class EnvironmentMgr : MonoBehaviour {
     public GameObject cornerCurved;
     public GameObject cornerSquare;
-    public GameObject cornerSquare2;
     public GameObject cross3;
     public GameObject cross4;
     public GameObject deadEnd;

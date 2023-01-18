@@ -207,10 +207,10 @@ namespace Segment {
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
             var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
             var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 270.0f);
-            rotations.Add(GlobalDirection.East, 180.0f);
-            rotations.Add(GlobalDirection.South, 90.0f);
-            rotations.Add(GlobalDirection.West, 0.0f);
+            rotations.Add(GlobalDirection.North, 0.0f);
+            rotations.Add(GlobalDirection.East, 270.0f);
+            rotations.Add(GlobalDirection.South, 180.0f);
+            rotations.Add(GlobalDirection.West, 90.0f);
             gSegments.Add((_entryX, _entryZ, _gDirection, getRotationByDirection(rotations), environmentMgr.cornerSquare));
             return gSegments;
         }
@@ -244,10 +244,10 @@ namespace Segment {
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
             var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
             var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 180.0f);
-            rotations.Add(GlobalDirection.East, 90.0f);
-            rotations.Add(GlobalDirection.South, 0.0f);
-            rotations.Add(GlobalDirection.West, 270.0f);
+            rotations.Add(GlobalDirection.North, 270.0f);
+            rotations.Add(GlobalDirection.East, 180.0f);
+            rotations.Add(GlobalDirection.South, 90.0f);
+            rotations.Add(GlobalDirection.West, 0.0f);
             gSegments.Add((_entryX, _entryZ, _gDirection,  getRotationByDirection(rotations), environmentMgr.cornerSquare));
             return gSegments;
         }
