@@ -9,6 +9,14 @@ public class EnvironmentMgr : MonoBehaviour {
     public GameObject cross4;
     public GameObject deadEnd;
     public GameObject straight;
+    public GameObject floorCeling;
+    public GameObject floorCelingWall;
+    public GameObject floorCelingCorner;
+    public GameObject floorCelingCornerRightExit;
+    public GameObject floorCelingCornerLeftExit;
+    public GameObject floorCelingCornerLeftRightExit;
+    public GameObject floorCelingExit;
+
 
     // Start is called before the first frame update
     void Start()

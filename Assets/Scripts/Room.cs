@@ -8,7 +8,7 @@ using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 using RandomGenerator = util.RandomGenerator;
 using DefaultRandom = util.DefaultRandom;
-
+using GameObject = UnityEngine.GameObject;
 
 namespace Segment {
     public abstract class Room : Segment {
@@ -109,6 +109,109 @@ namespace Segment {
         public override List<(int, int)> NeededSpace() {
             return _space;
         }
+
+        protected (int, int, int, int) getMinMax() {
+            int minX = 999;
+            int minZ = 999;
+            int maxX = -999;
+            int maxZ = -999;
+
+            foreach((int, int) coord in _tiles) {
+                if (coord.Item1 < minX) minX = coord.Item1;
+                if (coord.Item2 < minZ) minZ = coord.Item2;
+                if (coord.Item1 > maxX) maxX = coord.Item1;
+                if (coord.Item2 > maxZ) maxZ = coord.Item2;
+            }
+            return (minX, minZ, maxX, maxZ);
+        }
+
+        protected bool hasExit(int x, int z) {
+            return _exits.Exists(exit => exit.X == x && exit.Z == z);
+        }
+
+        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
+            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
+            var (minX, minZ, maxX, maxZ) = getMinMax(); // (minX, minZ, maxX, maxZ)
+
+            foreach((int, int) coord in _tiles) {
+                int x = coord.Item1;
+                int z = coord.Item2;
+                bool isEntry = _entryX == x && _entryZ == z;
+                float rotation = 0f;
+                GameObject gSegment;
+                if (x == minX && z == minZ) { //SouthWest corner
+                    if (hasExit(x - 1, z)) { 
+                        gSegment = environmentMgr.floorCelingCornerRightExit;
+                    } else if (hasExit(x, z - 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingCorner;
+                    }
+                    rotation = 90.0f;
+                } else if (x == minX && z == maxZ) {//SouthEast corner
+                    if (hasExit(x - 1, z)) { 
+                        gSegment = environmentMgr.floorCelingCornerLeftExit;
+                    } else if (hasExit(x, z + 1)) {
+                        gSegment = environmentMgr.floorCelingCornerRightExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingCorner;
+                    }
+                    rotation = 180.0f;
+                } else if (x == maxX && z == maxZ) { //NorthEast corner
+                    if (hasExit(x + 1, z)) { 
+                        gSegment = environmentMgr.floorCelingCornerRightExit;
+                    } else if (hasExit(x, z + 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingCorner;
+                    }
+                    rotation = 270.0f;
+                } else if (x == maxX && z == minZ) { //NorthWest corner
+                    if (hasExit(x + 1, z)) { 
+                        gSegment = environmentMgr.floorCelingCornerLeftExit;
+                    } else if (hasExit(x, z - 1)) {
+                        gSegment = environmentMgr.floorCelingCornerRightExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingCorner;
+                    }
+                    rotation = 0.0f;
+                } else if (x == maxX) { //North wall
+                    if (hasExit(x + 1, z) || isEntry) {
+                        gSegment = environmentMgr.floorCelingExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingWall;
+                    }
+                    rotation = 270.0f;
+                } else if (x == minX) { //South wall
+                    if (hasExit(x - 1, z) || isEntry) {
+                        gSegment = environmentMgr.floorCelingExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingWall;
+                    }
+                    rotation = 90.0f;
+                } else if (z == maxZ) { //East wall
+                    if (hasExit(x, z + 1) || isEntry) {
+                        gSegment = environmentMgr.floorCelingExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingWall;
+                    }
+                    rotation = 180.0f;
+                } else if (z == minZ) { //West wall
+                    if (hasExit(x, z - 1) || isEntry) {
+                        gSegment = environmentMgr.floorCelingExit;
+                    } else {
+                        gSegment = environmentMgr.floorCelingWall;
+                    }
+                    rotation = 0.0f;
+                }
+                else {
+                    gSegment = environmentMgr.floorCeling;
+                }
+
+                gSegments.Add((x, z, _gDirection, rotation, gSegment));
+            }
+            return gSegments;
+        }
     }
 
     public class Room3x3Segment : Room {
@@ -134,6 +237,7 @@ namespace Segment {
                 percentageOfExits[0] = (0, 0);
             }
             return GetExits(x, z , gDirection, potentialLocalExits, percentageOfExits);
+            
         }
     }
 

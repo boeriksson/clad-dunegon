@@ -171,11 +171,29 @@ namespace Segment {
         public override List<(int, int)> GetTiles()
         {
             var tiles = new List<(int, int)>();
+            tiles.Add((_entryX, _entryZ));
             return tiles;
         }
         override public List<(int, int)> NeededSpace() {
             var space = new List<(int, int)>();
+            space.Add((1, -1));
+            space.Add((1, 0));
+            space.Add((1, 1));
+            space.Add((2, -1));
+            space.Add((2, 0));
+            space.Add((2, 1));
             return space;
+        }
+
+        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
+            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
+            var rotations = new Dictionary<GlobalDirection, float>();
+            rotations.Add(GlobalDirection.North, 270.0f);
+            rotations.Add(GlobalDirection.East, 180.0f);
+            rotations.Add(GlobalDirection.South, 90.0f);
+            rotations.Add(GlobalDirection.West, 0.0f);
+            gSegments.Add((_entryX, _entryZ, _gDirection, getRotationByDirection(rotations), environmentMgr.deadEnd));
+            return gSegments;
         }
     }
 

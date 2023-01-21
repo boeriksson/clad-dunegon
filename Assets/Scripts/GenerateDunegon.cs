@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using SegmentExit = Segment.SegmentExit;
 using Segment;
 using StraightSegment = Segment.StraightSegment;
+using SegmentType = Segment.SegmentType;
 using GlobalDirection = Direction.GlobalDirection;
 using DirectionConversion = Direction.DirectionConversion;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace Dunegon {
         public int defaultMapSize;
         public int scale;
 
-        public int restartAfterBackWhenWSIsBelow = 2;
+        public int restartAfterBackWhenWSIsBelow = 2; // This amount or less forks in the workingset and we restart fork after backout
         private int currentSegment = 0;
         private DunegonHelper helper = new DunegonHelper();
 
@@ -201,34 +202,14 @@ namespace Dunegon {
             }
         }
 
+/*
         private void RotateSegment((int, int, GlobalDirection, float, GameObject) gSegment, GameObject iGSegment, Segment.Segment segment) {
             var segmentRotation = gSegment.Item4;
             var rotation = 0.0f;
-            /*
-            switch(gSegment.Item3) {
-                case GlobalDirection.North: {
-                    rotation += 90.0f;
-                    break;
-                }
-                case GlobalDirection.East: {
-                    rotation += 180.0f;
-                    break;
-                }
-                case GlobalDirection.South: {
-                    rotation += 270.0f;
-                    break;
-                }
-                case GlobalDirection.West: {
-                    rotation += 0.0f;
-                    break;
-                }
-            }
-            */
-            //rotation += segmentRotation;
             Debug.Log("Segment: " + segment.Type + " Rotation: " + rotation + " GlobalDirection: " + gSegment.Item3);
             iGSegment.transform.Rotate(0.0f, rotation, 0.0f, Space.Self);
         }
-
+*/
         private static void AddExitsToNextWorkingSet(List<(SegmentExit, Segment.Segment)> nextWorkingSet, Segment.Segment segment)
         {
             var segmentsWithExits = new List<(SegmentExit, Segment.Segment)>();
@@ -262,8 +243,10 @@ namespace Dunegon {
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
                     var segmentExits = segment.Exits;
-                    var segmentExitToRemove = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                    segmentExits.Remove(segmentExitToRemove);
+                    var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
+                    var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
+                    AddSegment(stopSegment);
+                    //segmentExits.Remove(segmentExitToRemove);
                 }
             }
             return backedOutSegment;
