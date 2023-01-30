@@ -16,8 +16,6 @@ namespace Dunegon {
     public class DunegonHelper {
         private RandomGenerator randomGenerator;
 
-        private bool goOnWithStraightDespiteKrock;
-
         public DunegonHelper() {
             randomGenerator = new DefaultRandom();
         }
@@ -28,16 +26,20 @@ namespace Dunegon {
         public Segment.Segment DecideNextSegment(int x, int z, GlobalDirection gDirection, LevelMap levelMap, int forks, Segment.Segment parent) {
             var possibleSegments = new List<(SegmentType, int)>();
             int totalWeight = 0;
+            (int, int) krockCoord = (999, 999);
 
             foreach (SegmentType segmentType in Enum.GetValues(typeof(SegmentType))) {
                 Segment.Segment segment = segmentType.GetSegmentByType(x, z, gDirection, forks, null);
                 var localSpaceNeeded = segment.NeededSpace();
                 var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(localSpaceNeeded, x, z, gDirection);
-                if (checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType)) {
-                    if (goOnWithStraightDespiteKrock) {
-                        //possibleSegments.Add((SegmentType.DoubleStraight, 100));
-                        Debug.Log("XXXXX DoubleStraight!!!");
-                        goOnWithStraightDespiteKrock = false;
+                var spaceIsAvailiable = checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType);
+                if (spaceIsAvailiable.Item1) {
+                    if (spaceIsAvailiable.Item2) {
+                        krockCoord = spaceIsAvailiable.Item3;
+                        Debug.Log("XXXXXXXXXXXXXXXXXXXXXX Go On despite krock at: (" + krockCoord.Item1 + ", " + krockCoord.Item2 + ")");
+                        int segmentWeight = 100;
+                        totalWeight += segmentWeight;
+                        possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
                     } else {
                         int segmentWeight = segmentType.GetSegmentTypeWeight(forks);
                         totalWeight += segmentWeight;
@@ -54,8 +56,10 @@ namespace Dunegon {
                 collectWeight += weight;
                 if (collectWeight >= ran) {
                     var segment = segmentType.GetSegmentByType(x, z, gDirection, forks, parent, true);
-                    //levelMap.AddCooridnates(segment.NeededSpace(), 8);
-                    Debug.Log("Returning: " + segment.Type + " parent: " + segment.Parent?.Type);
+                    if (segment is JoinSegment) {
+                        Debug.Log("JoinSegment krock: " + krockCoord.ToString());
+                        return new StopSegment(x, z, gDirection, parent);
+                    }
                     return segment; 
                 }
             }
@@ -63,22 +67,20 @@ namespace Dunegon {
             return new StopSegment(x, z, gDirection, parent);
         }
 
-        public Boolean checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
+        public (bool, bool, (int, int)) checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
             foreach((int, int) space in globalSpaceNeeded) {
                 if (levelMap.GetValueAtCoordinate(space) != 0) {
                     if (
-                        segmentType == SegmentType.Straight 
+                        segmentType == SegmentType.Straight  
                         && levelMap.GetValueAtCoordinate(space) == 1 
-                        && randomGenerator.Generate(100) > 85
+                        && randomGenerator.Generate(100) > 0
                         ) {
-                        //logger.WriteLine("############################### Going on with straightsegment despite KROCK!!!");
-                        goOnWithStraightDespiteKrock = true;
-                        return true;
+                        return (true, true, space);
                     }
-                    return false;
+                    return (false, false, (0, 0));
                 }
             }
-            return true;
+            return (true, false, (0,0));
         }
 
         private string printTupleList(List<(int, int)> tupleList) {
