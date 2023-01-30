@@ -25,7 +25,7 @@ namespace Dunegon {
             this.randomGenerator = _randomGenerator;
         }
 
-        public Segment.Segment DecideNextSegment(int x, int z, GlobalDirection gDirection, LevelMap levelMap, Logger logger, int forks, Segment.Segment parent) {
+        public Segment.Segment DecideNextSegment(int x, int z, GlobalDirection gDirection, LevelMap levelMap, int forks, Segment.Segment parent) {
             var possibleSegments = new List<(SegmentType, int)>();
             int totalWeight = 0;
 
@@ -33,9 +33,9 @@ namespace Dunegon {
                 Segment.Segment segment = segmentType.GetSegmentByType(x, z, gDirection, forks, null);
                 var localSpaceNeeded = segment.NeededSpace();
                 var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(localSpaceNeeded, x, z, gDirection);
-                if (checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, logger, segmentType)) {
+                if (checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType)) {
                     if (goOnWithStraightDespiteKrock) {
-                        possibleSegments.Add((SegmentType.DoubleStraight, 100));
+                        //possibleSegments.Add((SegmentType.DoubleStraight, 100));
                         Debug.Log("XXXXX DoubleStraight!!!");
                         goOnWithStraightDespiteKrock = false;
                     } else {
@@ -63,7 +63,7 @@ namespace Dunegon {
             return new StopSegment(x, z, gDirection, parent);
         }
 
-        public Boolean checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, Logger logger, SegmentType segmentType) {
+        public Boolean checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
             foreach((int, int) space in globalSpaceNeeded) {
                 if (levelMap.GetValueAtCoordinate(space) != 0) {
                     if (

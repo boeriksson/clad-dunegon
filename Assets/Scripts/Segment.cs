@@ -91,9 +91,21 @@ namespace Segment {
         }
     }
     public class StraightSegment : Segment {
-        public StraightSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Straight, x, z, gDirection, parent) {
+        private List<(int, int)> _space;
+        private List<Segment> _addOnSegments;
+        public StraightSegment(int x, int z, GlobalDirection gDirection, Segment parent, bool noCheck = false) : base(SegmentType.Straight, x, z, gDirection, parent) {
             _exits = new List<SegmentExit>();
             _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 1, 0, LocalDirection.Straight));
+            _space = new List<(int, int)>();
+            if (!noCheck) {
+                _space.Add((1, -1));
+                _space.Add((1, 0));
+                _space.Add((1, 1));
+                _space.Add((2, -1));
+                _space.Add((2, 0));
+                _space.Add((2, 1));
+            }
+            _addOnSegments = new List<Segment>();
         }
 
         public override List<(int, int)> GetTiles()
@@ -107,16 +119,11 @@ namespace Segment {
             Return needed spaces in relation to start (0, 0))
         */
         override public List<(int, int)> NeededSpace() {
-            var space = new List<(int, int)>();
-            space.Add((1, -1));
-            space.Add((1, 0));
-            space.Add((1, 1));
-            space.Add((2, -1));
-            space.Add((2, 0));
-            space.Add((2, 1));
-            //space.Add((0, -1));
-            //space.Add((0, 1));
-            return space;
+            return _space;
+        }
+
+        override public List<Segment> GetAddOnSegments() {
+            return _addOnSegments;
         }
 
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
@@ -476,52 +483,6 @@ namespace Segment {
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
             var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
             gSegments.Add((_entryX, _entryZ, _gDirection, 0f, environmentMgr.cross4));
-            return gSegments;
-        }
-    }
-    public class DoubleStraightSegment : Segment {
-        private List<(int, int)> _tiles;
-        public DoubleStraightSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.DoubleStraight, x, z, gDirection, parent) {
-            _exits = new List<SegmentExit>();
-            var localTiles = new List<(int, int)>();
-            localTiles.Add((0, 0));
-            localTiles.Add((1, 0));
-            localTiles.Add((2, 0));
-            _tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(localTiles, _entryX, _entryZ, gDirection);
-        }
-
-        public override List<(int, int)> GetTiles() {
-            return _tiles;
-        }
-
-        /**
-            Return needed spaces in relation to start (0, 0))
-        */
-        override public List<(int, int)> NeededSpace() {
-            var space = new List<(int, int)>();
-            space.Add((0, 0));
-            space.Add((1, 0));
-            space.Add((1, -1));
-            space.Add((1, 1));
-            return space;
-        }
-
-        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
-            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
-            var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 90.0f);
-            rotations.Add(GlobalDirection.East, 0.0f);
-            rotations.Add(GlobalDirection.South, 90.0f);
-            rotations.Add(GlobalDirection.West, 0.0f);
-            var rotation = getRotationByDirection(rotations);
-            var localCoords = new List<(int, int)>();
-            localCoords.Add((0, 0));
-            localCoords.Add((1, 0));
-            localCoords.Add((2, 0));
-            var globalCoords = DirectionConversion.GetGlobalCoordinatesFromLocal(localCoords, _entryX, _entryZ, _gDirection);
-            foreach((int, int) coord in globalCoords) {
-                gSegments.Add((coord.Item1, coord.Item2, _gDirection, rotation, environmentMgr.straight));
-            }
             return gSegments;
         }
     }

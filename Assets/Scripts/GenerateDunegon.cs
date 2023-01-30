@@ -34,7 +34,7 @@ namespace Dunegon {
         private LevelMap levelMap = new LevelMap();
         private List<GameObject> marks = new List<GameObject>();
         private List<GameObject> exitList = new List<GameObject>();
-        Logger logger = new Logger("./Logs/dunegon.log");
+        //Logger logger = new Logger("./Logs/dunegon.log");
 
         // Start is called before the first frame update
         void Start() {
@@ -100,13 +100,11 @@ namespace Dunegon {
             yield return null;
         }
 
-        IEnumerator AddWorkingSet()
-        {
+        IEnumerator AddWorkingSet() {
             RemoveOldMarksAndExits();
 
             List<(SegmentExit, Segment.Segment)> nextWorkingSet = new List<(SegmentExit, Segment.Segment)>();
-            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet)
-            {
+            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
                 Segment.Segment segment = helper.DecideNextSegment(
@@ -114,12 +112,10 @@ namespace Dunegon {
                     segmentStart.Z,
                     segmentStart.Direction,
                     levelMap,
-                    logger,
                     workingSet.Count,
                     parentSegment
                 );
-                if (!(segment is StopSegment))
-                {
+                if (!(segment is StopSegment)) {
                     AddSegment(segment);
                     var addOnSegments = segment.GetAddOnSegments();
                     if (addOnSegments.Count > 0) {
@@ -131,8 +127,7 @@ namespace Dunegon {
                         AddExitsToNextWorkingSet(nextWorkingSet, segment);
                     }
                     currentSegment++;
-                }
-                else {
+                } else {
                     var workingSetSize = workingSet.Count;
                     var backedOutSegment = BackoutDeadEnd(segment, 0, 0, workingSetSize);
                     Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: " + backedOutSegment.Type);
@@ -192,7 +187,6 @@ namespace Dunegon {
             } else {
                 var instantiatedGSegments = new List<GameObject>();
                 foreach((int, int, GlobalDirection, float, GameObject) gSegment in gSegments) {
-                    Debug.Log("Instantiating straight");
                     GameObject iGSegment = Instantiate(gSegment.Item5, new Vector3(gSegment.Item1 * scale, 0, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
                     iGSegment.transform.Rotate(0.0f, gSegment.Item4, 0.0f, Space.Self);
                     iGSegment.transform.SetParent(environmentMgr.transform);

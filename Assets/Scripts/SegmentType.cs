@@ -21,8 +21,7 @@ namespace Segment {
         Room5x5,
         Room5x6,
         Room6x5,
-        Room6x6,
-        DoubleStraight
+        Room6x6
     }
     
     public static class SegmentTypeExtension {
@@ -54,9 +53,6 @@ namespace Segment {
                 }
                 case SegmentType.LeftStraightRight: {
                     return new LeftStraightRightSegment(x, z, gDirection, parent);
-                }
-                case SegmentType.DoubleStraight: {
-                    return new DoubleStraightSegment(x, z, gDirection, parent);
                 }
                 case SegmentType.Room3x3: {
                     return new Room3x3Segment(x, z, gDirection, forks, parent);
@@ -120,9 +116,6 @@ namespace Segment {
                 }
                 case SegmentType.LeftStraightRight: {
                     return (int)Math.Round(3 * forksConstant, 0);
-                }
-                case SegmentType.DoubleStraight: {
-                    return 0;
                 }
                 case SegmentType.StraightNoCheck: {
                     return 0;
