@@ -91,9 +91,21 @@ namespace Segment {
         }
     }
     public class StraightSegment : Segment {
-        public StraightSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Straight, x, z, gDirection, parent) {
+        private List<(int, int)> _space;
+        private List<Segment> _addOnSegments;
+        public StraightSegment(int x, int z, GlobalDirection gDirection, Segment parent, bool noCheck = false) : base(SegmentType.Straight, x, z, gDirection, parent) {
             _exits = new List<SegmentExit>();
             _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 1, 0, LocalDirection.Straight));
+            _space = new List<(int, int)>();
+            if (!noCheck) {
+                _space.Add((1, -1));
+                _space.Add((1, 0));
+                _space.Add((1, 1));
+                _space.Add((2, -1));
+                _space.Add((2, 0));
+                _space.Add((2, 1));
+            }
+            _addOnSegments = new List<Segment>();
         }
 
         public override List<(int, int)> GetTiles()
@@ -107,50 +119,13 @@ namespace Segment {
             Return needed spaces in relation to start (0, 0))
         */
         override public List<(int, int)> NeededSpace() {
-            var space = new List<(int, int)>();
-            space.Add((1, -1));
-            space.Add((1, 0));
-            space.Add((1, 1));
-            space.Add((2, -1));
-            space.Add((2, 0));
-            space.Add((2, 1));
-            //space.Add((0, -1));
-            //space.Add((0, 1));
-            return space;
+            return _space;
         }
 
-        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
-            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
-            var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 90.0f);
-            rotations.Add(GlobalDirection.East, 0.0f);
-            rotations.Add(GlobalDirection.South, 90.0f);
-            rotations.Add(GlobalDirection.West, 0.0f);
-            gSegments.Add((_entryX, _entryZ, _gDirection, getRotationByDirection(rotations), environmentMgr.straight));
-            return gSegments;
-        }
-    }
-
-    public class StraightNoCheckSegment : Segment {
-        public StraightNoCheckSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.StraightNoCheck, x, z, gDirection, parent) {
-            _exits = new List<SegmentExit>();
-            _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 1, 0, LocalDirection.Straight));
+        override public List<Segment> GetAddOnSegments() {
+            return _addOnSegments;
         }
 
-        public override List<(int, int)> GetTiles()
-        {
-            List<(int, int)> tiles = new List<(int, int)>();
-            tiles.Add((_entryX, _entryZ));
-            return tiles;
-        }
-
-        /**
-            Return needed spaces in relation to start (0, 0))
-        */
-        override public List<(int, int)> NeededSpace() {
-            var space = new List<(int, int)>();
-            return space;
-        }
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
             var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
             var rotations = new Dictionary<GlobalDirection, float>();
@@ -163,6 +138,74 @@ namespace Segment {
         }
     }
     
+    /**
+        Joinsegment is a straightsegment initiating a chain of segments connecting to another "branch" of segments
+    */
+    public class JoinSegment : Segment {
+        private List<(int, int)> _space;
+        private List<Segment> _addOnSegments;
+        private (int, int) _joinExitCoord;
+
+        private (int, int) _joinCoord;
+
+        public JoinSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Join, x, z, gDirection, parent) {
+            _exits = new List<SegmentExit>();
+            _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 1, 0, LocalDirection.Straight));
+            _space = new List<(int, int)>();
+            _addOnSegments = new List<Segment>();
+        }
+
+        public override List<(int, int)> GetTiles()
+        {
+            List<(int, int)> tiles = new List<(int, int)>();
+            tiles.Add((_entryX, _entryZ));
+            return tiles;
+        }
+
+        /**
+            Return needed spaces in relation to start (0, 0))
+        */
+        override public List<(int, int)> NeededSpace() {
+            return _space;
+        }
+
+        override public List<Segment> GetAddOnSegments() {
+            return _addOnSegments;
+        }
+
+        public void SetAddOnSegments(List<Segment> addOnSegments) {
+            _addOnSegments = addOnSegments;
+        }
+
+        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
+            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
+            var rotations = new Dictionary<GlobalDirection, float>();
+            rotations.Add(GlobalDirection.North, 90.0f);
+            rotations.Add(GlobalDirection.East, 0.0f);
+            rotations.Add(GlobalDirection.South, 90.0f);
+            rotations.Add(GlobalDirection.West, 0.0f);
+            gSegments.Add((_entryX, _entryZ, _gDirection, getRotationByDirection(rotations), environmentMgr.straight));
+            return gSegments;
+        }
+
+        public (int, int) JoinExitCoord {
+            get {
+                return _joinExitCoord;
+            }
+            set {
+                _joinExitCoord = value;
+            }
+        }
+        public (int, int) JoinCoord {
+            get {
+                return _joinCoord;
+            }
+            set {
+                _joinCoord = value;
+            }
+        }
+    }
+
     public class StopSegment : Segment {
         public StopSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Stop, x, z, gDirection, parent) {
             _exits = new List<SegmentExit>();
@@ -349,7 +392,7 @@ namespace Segment {
         override public List<Segment> GetAddOnSegments() {
             var addOnSegments = new List<Segment>();
             foreach(SegmentExit exit in _exits) {
-                var segment = new StraightNoCheckSegment(exit.X, exit.Z, exit.Direction, this);
+                var segment = new StraightSegment(exit.X, exit.Z, exit.Direction, this, true);
                 addOnSegments.Add(segment);
             }
             return addOnSegments;
@@ -402,7 +445,7 @@ namespace Segment {
         override public List<Segment> GetAddOnSegments() {
             var addOnSegments = new List<Segment>();
             foreach(SegmentExit exit in _exits) {
-                var segment = new StraightNoCheckSegment(exit.X, exit.Z, exit.Direction, this);
+                var segment = new StraightSegment(exit.X, exit.Z, exit.Direction, this, true);
                 addOnSegments.Add(segment);
             }
             return addOnSegments;
@@ -467,7 +510,7 @@ namespace Segment {
         override public List<Segment> GetAddOnSegments() {
             var addOnSegments = new List<Segment>();
             foreach(SegmentExit exit in _exits) {
-                var segment = new StraightNoCheckSegment(exit.X, exit.Z, exit.Direction, this);
+                var segment = new StraightSegment(exit.X, exit.Z, exit.Direction, this, true);
                 addOnSegments.Add(segment);
             }
             return addOnSegments;
@@ -476,52 +519,6 @@ namespace Segment {
         override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
             var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
             gSegments.Add((_entryX, _entryZ, _gDirection, 0f, environmentMgr.cross4));
-            return gSegments;
-        }
-    }
-    public class DoubleStraightSegment : Segment {
-        private List<(int, int)> _tiles;
-        public DoubleStraightSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.DoubleStraight, x, z, gDirection, parent) {
-            _exits = new List<SegmentExit>();
-            var localTiles = new List<(int, int)>();
-            localTiles.Add((0, 0));
-            localTiles.Add((1, 0));
-            localTiles.Add((2, 0));
-            _tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(localTiles, _entryX, _entryZ, gDirection);
-        }
-
-        public override List<(int, int)> GetTiles() {
-            return _tiles;
-        }
-
-        /**
-            Return needed spaces in relation to start (0, 0))
-        */
-        override public List<(int, int)> NeededSpace() {
-            var space = new List<(int, int)>();
-            space.Add((0, 0));
-            space.Add((1, 0));
-            space.Add((1, -1));
-            space.Add((1, 1));
-            return space;
-        }
-
-        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
-            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
-            var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 90.0f);
-            rotations.Add(GlobalDirection.East, 0.0f);
-            rotations.Add(GlobalDirection.South, 90.0f);
-            rotations.Add(GlobalDirection.West, 0.0f);
-            var rotation = getRotationByDirection(rotations);
-            var localCoords = new List<(int, int)>();
-            localCoords.Add((0, 0));
-            localCoords.Add((1, 0));
-            localCoords.Add((2, 0));
-            var globalCoords = DirectionConversion.GetGlobalCoordinatesFromLocal(localCoords, _entryX, _entryZ, _gDirection);
-            foreach((int, int) coord in globalCoords) {
-                gSegments.Add((coord.Item1, coord.Item2, _gDirection, rotation, environmentMgr.straight));
-            }
             return gSegments;
         }
     }

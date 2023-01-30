@@ -34,7 +34,7 @@ namespace Dunegon {
         private LevelMap levelMap = new LevelMap();
         private List<GameObject> marks = new List<GameObject>();
         private List<GameObject> exitList = new List<GameObject>();
-        Logger logger = new Logger("./Logs/dunegon.log");
+        //Logger logger = new Logger("./Logs/dunegon.log");
 
         // Start is called before the first frame update
         void Start() {
@@ -100,13 +100,11 @@ namespace Dunegon {
             yield return null;
         }
 
-        IEnumerator AddWorkingSet()
-        {
+        IEnumerator AddWorkingSet() {
             RemoveOldMarksAndExits();
 
             List<(SegmentExit, Segment.Segment)> nextWorkingSet = new List<(SegmentExit, Segment.Segment)>();
-            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet)
-            {
+            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
                 Segment.Segment segment = helper.DecideNextSegment(
@@ -114,25 +112,35 @@ namespace Dunegon {
                     segmentStart.Z,
                     segmentStart.Direction,
                     levelMap,
-                    logger,
                     workingSet.Count,
                     parentSegment
                 );
-                if (!(segment is StopSegment))
-                {
+
+                Debug.Log("SegmentType: " + segment.Type);
+
+                if (!(segment is StopSegment)) {
                     AddSegment(segment);
-                    var addOnSegments = segment.GetAddOnSegments();
-                    if (addOnSegments.Count > 0) {
-                        foreach(Segment.Segment addSegment in addOnSegments) {
-                            AddSegment(addSegment);    
-                            AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
+
+                    if (segment is JoinSegment) {
+                        Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection + " Type: " + segment.Type);
+                        var joiningCoords = ((JoinSegment)segment).JoinCoord;
+                        var exitCoord = ((JoinSegment)segment).JoinExitCoord;
+                        var joiningSegment = GetSegmentWithTile(joiningCoords);
+                        foreach (Segment.Segment addSegment in segment.GetAddOnSegments()) {
+                            AddSegment(addSegment);
                         }
+                        ReplaceJoiningSegmentWithPlusExitSegment(joiningSegment, exitCoord);
                     } else {
-                        AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                        var addOnSegments = segment.GetAddOnSegments();
+                        if (addOnSegments.Count > 0) {
+                            AddAddOnSegments(nextWorkingSet, addOnSegments);
+                        }
+                        else {
+                            AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                        }
                     }
                     currentSegment++;
-                }
-                else {
+                } else {
                     var workingSetSize = workingSet.Count;
                     var backedOutSegment = BackoutDeadEnd(segment, 0, 0, workingSetSize);
                     Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: " + backedOutSegment.Type);
@@ -145,6 +153,108 @@ namespace Dunegon {
             workingSet.Clear();
             workingSet.AddRange(nextWorkingSet);
             yield return null;
+        }
+
+        private void AddAddOnSegments(List<(SegmentExit, Segment.Segment)> nextWorkingSet, List<Segment.Segment> addOnSegments) {
+            var segmentsWithExits = new List<(SegmentExit, Segment.Segment)>();
+            foreach (Segment.Segment addSegment in addOnSegments) {
+                AddSegment(addSegment);
+                segmentsWithExits.AddRange(AddOnSegmentWithExitsList(addSegment, addOnSegments));
+            }
+            nextWorkingSet.AddRange(segmentsWithExits);
+        }
+
+        private void ReplaceJoiningSegmentWithPlusExitSegment(Segment.Segment joiningSegment, (int, int) exitCoord) {
+            Debug.Log("### ReplaceJoiningSegmentWithPlusExitSegment ###");
+            var localExitCoordinates = GetLocalCooridnatesForSegment(joiningSegment, exitCoord);
+            var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, localExitCoordinates);
+            Debug.Log("NewSegment Type: " + newSegment.Type);
+            ClearSegment(joiningSegment);
+            AddSegment(newSegment);
+        }
+
+        private Segment.Segment RedoSegmentWithAdditionalExit(Segment.Segment oldSegment, (int, int) localExitCoordinates) {
+            Debug.Log("OldSegment Type: " + oldSegment.Type.Equals(SegmentType.Straight));
+            switch (oldSegment.Type) {
+                case SegmentType.Straight: {
+                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == 1) {
+                        return SegmentType.StraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
+                        return SegmentType.StraightLeft.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.Right: {
+                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
+                        return SegmentType.StraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
+                        return SegmentType.LeftRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.Left: {
+                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
+                        return SegmentType.StraightLeft.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == 1) {
+                        return SegmentType.LeftRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.LeftRight: {
+                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } 
+                    break;
+                }
+                case SegmentType.StraightRight: {
+                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } 
+                    break;  
+                }
+                case SegmentType.StraightLeft: {
+                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, workingSet.Count, oldSegment.Parent);
+                    } 
+                    break;  
+                }
+                default: {
+                    if (oldSegment is Room) {
+                        //Later.. 
+                    }
+                    break;
+                }
+            }
+            
+            throw new Exception("RedoSegmentWithAdditionalExit - unreqognized joinSegment: " + oldSegment.Type);
+        }
+
+        private (int, int) GetLocalCooridnatesForSegment(Segment.Segment segment, (int, int) gCoord) { //ToDo: Move to Direction
+            switch(segment.GlobalDirection) {
+                case GlobalDirection.North: {
+                    return (gCoord.Item1 - segment.X, gCoord.Item2 - segment.Z);
+                }
+                case GlobalDirection.East: {
+                    return (segment.X - gCoord.Item1, gCoord.Item2 - segment.Z);
+                }
+                case GlobalDirection.South: {
+                    return (segment.X - gCoord.Item1, segment.Z - gCoord.Item2);
+                }
+                case GlobalDirection.West: {
+                    return (gCoord.Item1 - segment.X, segment.Z - gCoord.Item2);
+                }
+            }
+            throw new Exception("Segment.Globaldirection not reqognized..");
+        }
+
+        private Segment.Segment GetSegmentWithTile((int, int) tileCoord) {
+            foreach(Segment.Segment segment in segmentList) {
+                var tiles = segment.GetTiles();
+                if (tiles.Exists(tile => tile.Item1 == tileCoord.Item1 && tile.Item2 == tileCoord.Item2)) {
+                    return segment;
+                }
+            }
+            throw new Exception("GetSegmentWithTile - segmentNotFound!");
         }
 
         private void AddSegment(Segment.Segment segment)
@@ -192,7 +302,6 @@ namespace Dunegon {
             } else {
                 var instantiatedGSegments = new List<GameObject>();
                 foreach((int, int, GlobalDirection, float, GameObject) gSegment in gSegments) {
-                    Debug.Log("Instantiating straight");
                     GameObject iGSegment = Instantiate(gSegment.Item5, new Vector3(gSegment.Item1 * scale, 0, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
                     iGSegment.transform.Rotate(0.0f, gSegment.Item4, 0.0f, Space.Self);
                     iGSegment.transform.SetParent(environmentMgr.transform);
@@ -202,22 +311,33 @@ namespace Dunegon {
             }
         }
 
-/*
-        private void RotateSegment((int, int, GlobalDirection, float, GameObject) gSegment, GameObject iGSegment, Segment.Segment segment) {
-            var segmentRotation = gSegment.Item4;
-            var rotation = 0.0f;
-            Debug.Log("Segment: " + segment.Type + " Rotation: " + rotation + " GlobalDirection: " + gSegment.Item3);
-            iGSegment.transform.Rotate(0.0f, rotation, 0.0f, Space.Self);
+        private void AddExitsToNextWorkingSet(List<(SegmentExit, Segment.Segment)> nextWorkingSet, Segment.Segment segment) {
+            List<(SegmentExit, Segment.Segment)> segmentsWithExits = SegmentWithExitsList(segment);
+
+            nextWorkingSet.AddRange(segmentsWithExits);
         }
-*/
-        private static void AddExitsToNextWorkingSet(List<(SegmentExit, Segment.Segment)> nextWorkingSet, Segment.Segment segment)
-        {
+
+        private List<(SegmentExit, Segment.Segment)> AddOnSegmentWithExitsList(Segment.Segment segment, List<Segment.Segment> addOnSegments) {
+            var segmentsWithExits = new List<(SegmentExit, Segment.Segment)>();
+            foreach (SegmentExit segmentExit in segment.Exits) {
+                if (!isEntryInOtherSegment(segmentExit, addOnSegments))
+                segmentsWithExits.Add((segmentExit, segment));
+            }
+
+            return segmentsWithExits;
+        }
+
+        private List<(SegmentExit, Segment.Segment)> SegmentWithExitsList(Segment.Segment segment) {
             var segmentsWithExits = new List<(SegmentExit, Segment.Segment)>();
             foreach (SegmentExit segmentExit in segment.Exits) {
                 segmentsWithExits.Add((segmentExit, segment));
             }
 
-            nextWorkingSet.AddRange(segmentsWithExits);
+            return segmentsWithExits;
+        }
+
+        private bool isEntryInOtherSegment(SegmentExit segmentExit, List<Segment.Segment> addOnSegments) {
+            return addOnSegments.Exists(segment => segment.X == segmentExit.X && segment.Z == segmentExit.Z);
         }
 
         private void ShowMarks(Segment.Segment segment)

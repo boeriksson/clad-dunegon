@@ -140,7 +140,9 @@ namespace Segment {
                 float rotation = 0f;
                 GameObject gSegment;
                 if (x == minX && z == minZ) { //SouthWest corner
-                    if (hasExit(x - 1, z)) { 
+                    if (hasExit(x - 1, z) && hasExit(x, z - 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftRightExit;
+                    } else if (hasExit(x - 1, z)) { 
                         gSegment = environmentMgr.floorCelingCornerRightExit;
                     } else if (hasExit(x, z - 1)) {
                         gSegment = environmentMgr.floorCelingCornerLeftExit;
@@ -149,7 +151,9 @@ namespace Segment {
                     }
                     rotation = 90.0f;
                 } else if (x == minX && z == maxZ) {//SouthEast corner
-                    if (hasExit(x - 1, z)) { 
+                    if (hasExit(x - 1, z) && hasExit(x, z + 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftRightExit;
+                    } else if (hasExit(x - 1, z)) { 
                         gSegment = environmentMgr.floorCelingCornerLeftExit;
                     } else if (hasExit(x, z + 1)) {
                         gSegment = environmentMgr.floorCelingCornerRightExit;
@@ -158,7 +162,9 @@ namespace Segment {
                     }
                     rotation = 180.0f;
                 } else if (x == maxX && z == maxZ) { //NorthEast corner
-                    if (hasExit(x + 1, z)) { 
+                    if (hasExit(x + 1, z) && hasExit(x, z + 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftRightExit;
+                    } else if (hasExit(x + 1, z)) { 
                         gSegment = environmentMgr.floorCelingCornerRightExit;
                     } else if (hasExit(x, z + 1)) {
                         gSegment = environmentMgr.floorCelingCornerLeftExit;
@@ -167,7 +173,9 @@ namespace Segment {
                     }
                     rotation = 270.0f;
                 } else if (x == maxX && z == minZ) { //NorthWest corner
-                    if (hasExit(x + 1, z)) { 
+                    if (hasExit(x + 1, z) && hasExit(x, z - 1)) {
+                        gSegment = environmentMgr.floorCelingCornerLeftRightExit;
+                    } else if (hasExit(x + 1, z)) { 
                         gSegment = environmentMgr.floorCelingCornerLeftExit;
                     } else if (hasExit(x, z - 1)) {
                         gSegment = environmentMgr.floorCelingCornerRightExit;
