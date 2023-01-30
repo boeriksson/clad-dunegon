@@ -31,7 +31,8 @@ namespace Segment {
                     return new StraightSegment(x, z, gDirection, parent);
                 }
                 case SegmentType.StraightNoCheck: {
-                    return new StraightNoCheckSegment(x, z, gDirection, parent);
+                    //return new StraightNoCheckSegment(x, z, gDirection, parent);
+                    return new StraightSegment(x, z, gDirection, parent, true);
                 }
                 case SegmentType.Stop: {
                     return new StopSegment(x, z, gDirection, parent);
