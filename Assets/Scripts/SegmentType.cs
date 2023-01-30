@@ -21,7 +21,8 @@ namespace Segment {
         Room5x5,
         Room5x6,
         Room6x5,
-        Room6x6
+        Room6x6,
+        Join
     }
     
     public static class SegmentTypeExtension {
@@ -117,6 +118,9 @@ namespace Segment {
                 }
                 case SegmentType.LeftStraightRight: {
                     return (int)Math.Round(3 * forksConstant, 0);
+                }
+                case SegmentType.Join: {
+                    return 0;
                 }
                 case SegmentType.StraightNoCheck: {
                     return 0;
