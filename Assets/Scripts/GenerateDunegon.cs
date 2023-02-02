@@ -25,7 +25,9 @@ namespace Dunegon {
 
         public int restartAfterBackWhenWSIsBelow = 2; // This amount or less forks in the workingset and we restart fork after backout
         private int currentSegment = 0;
-        private DunegonHelper helper = new DunegonHelper();
+        private DunegonHelper dHelper = new DunegonHelper();
+
+        private Join join = new Join();
 
         private EnvironmentMgr environmentMgr;
 
@@ -107,7 +109,7 @@ namespace Dunegon {
             foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
-                Segment.Segment segment = helper.DecideNextSegment(
+                Segment.Segment segment = dHelper.DecideNextSegment(
                     segmentStart.X,
                     segmentStart.Z,
                     segmentStart.Direction,
@@ -117,14 +119,19 @@ namespace Dunegon {
                 );
                 if (!(segment is StopSegment)) {
                     AddSegment(segment);
-                    var addOnSegments = segment.GetAddOnSegments();
-                    if (addOnSegments.Count > 0) {
-                        foreach(Segment.Segment addSegment in addOnSegments) {
-                            AddSegment(addSegment);    
-                            AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
-                        }
+                    if (segment is JoinSegment) {
+                        Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
+                        join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList);
                     } else {
-                        AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                        var addOnSegments = segment.GetAddOnSegments();
+                        if (addOnSegments.Count > 0) {
+                            foreach(Segment.Segment addSegment in addOnSegments) {
+                                AddSegment(addSegment);    
+                                AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
+                            }
+                        } else {
+                            AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                        }
                     }
                     currentSegment++;
                 } else {

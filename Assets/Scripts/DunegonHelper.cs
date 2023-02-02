@@ -26,17 +26,16 @@ namespace Dunegon {
         public Segment.Segment DecideNextSegment(int x, int z, GlobalDirection gDirection, LevelMap levelMap, int forks, Segment.Segment parent) {
             var possibleSegments = new List<(SegmentType, int)>();
             int totalWeight = 0;
-            (int, int) krockCoord = (999, 999);
+            List<(int, int)> krockCoords = new List<(int, int)>();
 
             foreach (SegmentType segmentType in Enum.GetValues(typeof(SegmentType))) {
                 Segment.Segment segment = segmentType.GetSegmentByType(x, z, gDirection, forks, null);
                 var localSpaceNeeded = segment.NeededSpace();
                 var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(localSpaceNeeded, x, z, gDirection);
-                var spaceIsAvailiable = checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType);
-                if (spaceIsAvailiable.Item1) {
-                    if (spaceIsAvailiable.Item2) {
-                        krockCoord = spaceIsAvailiable.Item3;
-                        Debug.Log("XXXXXXXXXXXXXXXXXXXXXX Go On despite krock at: (" + krockCoord.Item1 + ", " + krockCoord.Item2 + ")");
+                (bool unJoinableKrock, List<(int, int)> globalJoinableKrockCoord) = checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType);
+                if (!unJoinableKrock) {
+                    if (globalJoinableKrockCoord.Count > 0) {
+                        krockCoords.AddRange(globalJoinableKrockCoord);
                         int segmentWeight = 100;
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
@@ -57,8 +56,9 @@ namespace Dunegon {
                 if (collectWeight >= ran) {
                     var segment = segmentType.GetSegmentByType(x, z, gDirection, forks, parent, true);
                     if (segment is JoinSegment) {
-                        Debug.Log("JoinSegment krock: " + krockCoord.ToString());
-                        return new StopSegment(x, z, gDirection, parent);
+                        Debug.Log("JoinSegment krock: ");
+                        ((JoinSegment)segment).KrockCoords = krockCoords;
+                        return segment;
                     }
                     return segment; 
                 }
@@ -67,20 +67,18 @@ namespace Dunegon {
             return new StopSegment(x, z, gDirection, parent);
         }
 
-        public (bool, bool, (int, int)) checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
+        public (bool, List<(int, int)>) checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
+            var globalJoinableKrockCoord = new List<(int, int)>();
             foreach((int, int) space in globalSpaceNeeded) {
                 if (levelMap.GetValueAtCoordinate(space) != 0) {
-                    if (
-                        segmentType == SegmentType.Straight  
-                        && levelMap.GetValueAtCoordinate(space) == 1 
-                        && randomGenerator.Generate(100) > 0
-                        ) {
-                        return (true, true, space);
+                    if (segmentType == SegmentType.Straight  && levelMap.GetValueAtCoordinate(space) == 1) {
+                        globalJoinableKrockCoord.Add(space);
+                    } else {
+                        return (true, new List<(int, int)>());
                     }
-                    return (false, false, (0, 0));
                 }
             }
-            return (true, false, (0,0));
+            return (false, globalJoinableKrockCoord);
         }
 
         private string printTupleList(List<(int, int)> tupleList) {

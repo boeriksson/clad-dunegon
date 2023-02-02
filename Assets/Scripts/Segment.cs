@@ -145,7 +145,7 @@ namespace Segment {
         private List<(int, int)> _space;
         private List<Segment> _addOnSegments;
         private (int, int) _joinExitCoord;
-
+        private List<(int, int)> _krockCoords;
         private (int, int) _joinCoord;
 
         public JoinSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Join, x, z, gDirection, parent) {
@@ -202,6 +202,14 @@ namespace Segment {
             }
             set {
                 _joinCoord = value;
+            }
+        }
+        public List<(int, int)> KrockCoords {
+            get {
+                return _krockCoords;
+            }
+            set {
+                _krockCoords = value;
             }
         }
     }
