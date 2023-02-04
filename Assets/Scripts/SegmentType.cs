@@ -66,25 +66,25 @@ namespace Segment {
                     return new Room3x4Segment(x, z, gDirection, forks, parent);
                 }
                 case SegmentType.Room4x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 4, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 4, 4, forks, parent, isReal, SegmentType.Room4x4);
                 }
                 case SegmentType.Room4x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 5, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 4, 5, forks, parent, isReal, SegmentType.Room4x5);
                 }
                 case SegmentType.Room5x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 4, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 5, 4, forks, parent, isReal, SegmentType.Room5x4);
                 }
                 case SegmentType.Room5x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 5, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 5, 5, forks, parent, isReal,SegmentType.Room5x5);
                 }
                 case SegmentType.Room5x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 6, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 5, 6, forks, parent, isReal, SegmentType.Room5x6);
                 }
                 case SegmentType.Room6x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 5, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 6, 5, forks, parent, isReal, SegmentType.Room6x5);
                 }
                 case SegmentType.Room6x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 6, forks, parent, isReal);
+                    return new RoomVariableSegment(x, z, gDirection, 6, 6, forks, parent, isReal, SegmentType.Room6x6);
                 }
                 default: {
                     return new StraightSegment(x, z, gDirection, parent);

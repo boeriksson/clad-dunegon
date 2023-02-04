@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Segment {
     public abstract class Segment {
-        private SegmentType _type;
+        protected SegmentType _type;
         protected List<SegmentExit> _exits;
         protected int _entryX;
         protected int _entryZ;

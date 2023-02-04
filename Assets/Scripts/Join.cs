@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Segment;
 using GlobalDirection = Direction.GlobalDirection;
+using LocalDirection = Direction.LocalDirection;
 using Debug = UnityEngine.Debug;
 
 namespace Dunegon {
@@ -16,12 +17,11 @@ namespace Dunegon {
             joinSegment.JoinCoord = joinCoord;
             var joiningSegment = GetSegmentWithTile(joinCoord, segmentList);
             Debug.Log("JoiningSegment type: " + joiningSegment.Type + " direction: " + joiningSegment.GlobalDirection);
-            /*
+            
             foreach (Segment.Segment addSegment in joinSegment.GetAddOnSegments()) {
                 AddSegment(addSegment);
             }
-            ReplaceJoiningSegmentWithPlusExitSegment(joiningSegment, exitCoord, AddSegment, ClearSegment);
-            */
+            ReplaceJoiningSegmentWithPlusExitSegment(joiningSegment, joinSegment, exitCoord, AddSegment, ClearSegment);
         }
 
         private (List<Segment.Segment>, (int, int), (int, int)) GetJoinAddOnSegments(JoinSegment joinSegment) {
@@ -76,7 +76,7 @@ namespace Dunegon {
             }
 
             var path = new List<Segment.Segment>();
-            (int, int) exitCoord = (-999, -999);
+            (int, int) exitCoord = (xj, zj);
             for(int i = 0; i < prePath.Count; i++) {
                 var step = prePath[i];
                 var parent = i == 0 ? joinSegment : path[i - 1];
@@ -103,17 +103,17 @@ namespace Dunegon {
                         if (nextStep.Item3 == GlobalDirection.East) {
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (nextStep.Item3 == GlobalDirection.North) {
-                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
                             path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     } else if (step.Item3 == GlobalDirection.West) {
                         if (nextStep.Item3 == GlobalDirection.West) {
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (nextStep.Item3 == GlobalDirection.North) {
-                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
                             path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     } 
                 } else { // Last step before join - this is the joinSegment exit?!
@@ -123,44 +123,49 @@ namespace Dunegon {
                         if (sz == zj) {
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (sz > zj) {
-                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
                             path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     }
                     if (direction == GlobalDirection.East) {
                         if (sx == xj) {
+                            Debug.Log("Gd.East sx == xj");
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (sx > xj) {
-                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
+                            Debug.Log("Gd.East sx > xj");
                             path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            Debug.Log("Gd.East sx < xj");
+                            path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     }
                     if (direction == GlobalDirection.South) {
                         if (sz == zj) {
+                            Debug.Log("Gd.South sz == zj");
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (sz > zj) {
-                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
+                            Debug.Log("Gd.South sz > zj");
                             path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            Debug.Log("Gd.South sz < zj");
+                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     }
                     if (direction == GlobalDirection.West) {
                         if (sx == xj) {
+                            Debug.Log("Gd.West sx == xj");
                             path.Add(new StraightSegment(step.Item1, step.Item2, step.Item3, parent: parent));
                         } else if (sx > xj) {
-                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
-                        } else {
+                            Debug.Log("Gd.South sx > xj");
                             path.Add(new RightSegment(step.Item1, step.Item2, step.Item3, parent));
+                        } else {
+                            Debug.Log("Gd.South sx < xj");
+                            path.Add(new LeftSegment(step.Item1, step.Item2, step.Item3, parent));
                         }
                     }
 
                 }
-            }
-
-            if (exitCoord.Item1 == -999) {
-                throw new Exception("FindPath.exitCord not initialized!");
             }
             return (path, exitCoord, joinSegment.JoinCoord);
         }
@@ -175,69 +180,83 @@ namespace Dunegon {
             throw new Exception("GetSegmentWithTile - segmentNotFound!");
         }
 
-        private void ReplaceJoiningSegmentWithPlusExitSegment(Segment.Segment joiningSegment, (int, int) exitCoord, Action<Segment.Segment> AddSegment, Action<Segment.Segment> ClearSegment) {
-            Debug.Log("### ReplaceJoiningSegmentWithPlusExitSegment ###");
+        private void ReplaceJoiningSegmentWithPlusExitSegment(Segment.Segment joiningSegment, JoinSegment joinSegment, (int, int) exitCoord, Action<Segment.Segment> AddSegment, Action<Segment.Segment> ClearSegment) {
+            Debug.Log("### ReplaceJoiningSegmentWithPlusExitSegment ### joiningSegment type: " + joiningSegment.Type.ToString() + " entry: (" + joiningSegment.X + ", " + joiningSegment.Z + ") gDirection: " + joiningSegment.GlobalDirection + " exitCoord: " + exitCoord.ToString());
             var localExitCoordinates = GetLocalCooridnatesForSegment(joiningSegment, exitCoord);
-            var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, localExitCoordinates);
+            var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, joinSegment, localExitCoordinates);
             Debug.Log("NewSegment Type: " + newSegment.Type);
             ClearSegment(joiningSegment);
             AddSegment(newSegment);
         }
 
-        private Segment.Segment RedoSegmentWithAdditionalExit(Segment.Segment oldSegment, (int, int) localExitCoordinates) {
-            Debug.Log("OldSegment Type: " + oldSegment.Type.Equals(SegmentType.Straight));
-            switch (oldSegment.Type) {
+        private Segment.Segment RedoSegmentWithAdditionalExit(Segment.Segment joiningSegment, JoinSegment joinSegment, (int x, int z) le) {
+            Debug.Log("OldSegment Type: " + joiningSegment.Type.ToString() + " localExitCooordinates: (" + le.x + "," + le.z + ")");
+            LocalDirection joiningSide = GetJoiningSide(joiningSegment, joinSegment);
+            switch (joiningSegment.Type) {
                 case SegmentType.Straight: {
-                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == 1) {
-                        return SegmentType.StraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
-                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
-                        return SegmentType.StraightLeft.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if ((le.x == 0 && le.z == 1) || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Right)) {
+                        return SegmentType.StraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
+                    } else if (le.x == 0 && le.z == -1|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
+                        return SegmentType.StraightLeft.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     }
+                    Debug.Log("Shouldnt be here... (Straight) ");
                     break;
                 }
                 case SegmentType.Right: {
-                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
-                        return SegmentType.StraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
-                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
-                        return SegmentType.LeftRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if (le.x == 1 && le.z == 0|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Straight)) {
+                        return SegmentType.StraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
+                    } else if (le.Item1 == 0 && le.z == -1|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
+                        return SegmentType.LeftRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     }
+                    Debug.Log("Shouldnt be here... (Right) ");
                     break;
                 }
                 case SegmentType.Left: {
-                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
-                        return SegmentType.StraightLeft.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
-                    } else if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == 1) {
-                        return SegmentType.LeftRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if (le.x == 1 && le.z == 0|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Straight)) {
+                        return SegmentType.StraightLeft.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
+                    } else if (le.Item1 == 0 && le.z == 1) {
+                        return SegmentType.LeftRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     }
+                    Debug.Log("Shouldnt be here... (Left) ");
                     break;
                 }
                 case SegmentType.LeftRight: {
-                    if (localExitCoordinates.Item1 == 1 && localExitCoordinates.Item2 == 0) {
-                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if (le.x == 1 && le.z == 0|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Straight)) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } 
+                    Debug.Log("Shouldnt be here... (LeftRight) ");
                     break;
                 }
                 case SegmentType.StraightRight: {
-                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
-                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if (le.x == 0 && le.z == 1 || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } 
+                    Debug.Log("Shouldnt be here... (StraightRight) ");
                     break;  
                 }
                 case SegmentType.StraightLeft: {
-                    if (localExitCoordinates.Item1 == 0 && localExitCoordinates.Item2 == -1) {
-                        return SegmentType.LeftStraightRight.GetSegmentByType(oldSegment.X, oldSegment.Z, oldSegment.GlobalDirection, 0, oldSegment.Parent);
+                    if (le.x == 0 && le.z == 1 || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Right)) {
+                        return SegmentType.LeftStraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } 
+                    Debug.Log("Shouldnt be here... (StraightLeft) ");
                     break;  
                 }
                 default: {
-                    if (oldSegment is Room) {
-                        //Later.. 
+                    if (joiningSegment is Room) {
+                        var newExit = new SegmentExit(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, le.x, le.z, joiningSide);
+                        if (joiningSegment is Room3x3Segment) {
+                            return new Room3x3Segment((Room3x3Segment)joiningSegment, newExit);
+                        } else if (joiningSegment is Room3x4Segment) {
+                            return new Room3x4Segment((Room3x4Segment)joiningSegment, newExit);
+                        } else if (joiningSegment is RoomVariableSegment) {
+                            return new RoomVariableSegment((RoomVariableSegment)joiningSegment, newExit);
+                        }
                     }
                     break;
                 }
             }
             
-            throw new Exception("RedoSegmentWithAdditionalExit - unreqognized joinSegment: " + oldSegment.Type);
+            throw new Exception("RedoSegmentWithAdditionalExit - unreqognized joinSegment: " + joiningSegment.Type);
         }
 
         private (int, int) GetLocalCooridnatesForSegment(Segment.Segment segment, (int, int) gCoord) { //ToDo: Move to Direction
@@ -246,16 +265,90 @@ namespace Dunegon {
                     return (gCoord.Item1 - segment.X, gCoord.Item2 - segment.Z);
                 }
                 case GlobalDirection.East: {
-                    return (segment.X - gCoord.Item1, gCoord.Item2 - segment.Z);
+                    return (gCoord.Item2 - segment.Z, segment.X - gCoord.Item1);
                 }
                 case GlobalDirection.South: {
                     return (segment.X - gCoord.Item1, segment.Z - gCoord.Item2);
                 }
                 case GlobalDirection.West: {
-                    return (gCoord.Item1 - segment.X, segment.Z - gCoord.Item2);
+                    return (segment.Z - gCoord.Item2, gCoord.Item1 - segment.X);
                 }
             }
             throw new Exception("Segment.Globaldirection not reqognized..");
+        }
+
+        private LocalDirection GetJoiningSide(Segment.Segment joiningSegment, JoinSegment joinSegment) {
+            switch (joiningSegment.GlobalDirection) {
+                case GlobalDirection.North: {
+                    switch (joinSegment.GlobalDirection) {
+                        case GlobalDirection.North: {
+                            return LocalDirection.Back;
+                        }
+                        case GlobalDirection.East: {
+                            return LocalDirection.Left;
+                        }
+                        case GlobalDirection.West: {
+                            return LocalDirection.Right;
+                        }
+                        case GlobalDirection.South: {
+                            return LocalDirection.Straight;
+                        }
+                    }
+                    break;
+                }
+                case GlobalDirection.West: {
+                    switch (joinSegment.GlobalDirection) {
+                        case GlobalDirection.North: {
+                            return LocalDirection.Left;
+                        }
+                        case GlobalDirection.East: {
+                            return LocalDirection.Straight;
+                        }
+                        case GlobalDirection.West: {
+                            return LocalDirection.Back;
+                        }
+                        case GlobalDirection.South: {
+                            return LocalDirection.Right;
+                        }
+                    }
+                    break;
+                }
+                case GlobalDirection.South: {
+                    switch (joinSegment.GlobalDirection) {
+                        case GlobalDirection.North: {
+                            return LocalDirection.Straight;
+                        }
+                        case GlobalDirection.East: {
+                            return LocalDirection.Right;
+                        }
+                        case GlobalDirection.West: {
+                            return LocalDirection.Left;
+                        }
+                        case GlobalDirection.South: {
+                            return LocalDirection.Back;
+                        }
+                    }
+                    break;
+                }
+                case GlobalDirection.East: {
+                    switch (joinSegment.GlobalDirection) {
+                        case GlobalDirection.North: {
+                            return LocalDirection.Right;
+                        }
+                        case GlobalDirection.East: {
+                            return LocalDirection.Back;
+                        }
+                        case GlobalDirection.West: {
+                            return LocalDirection.Straight;
+                        }
+                        case GlobalDirection.South: {
+                            return LocalDirection.Left;
+                        }
+                    }
+                    break;
+                }
+            }
+            throw new Exception("GetJoiningSide unknown globalDirection...");
         }
 
     }
