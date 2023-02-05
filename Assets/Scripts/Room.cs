@@ -314,6 +314,7 @@ namespace Segment {
             _entry = oldRoom.Entry;
             _exits = oldRoom.Exits;
             _exits.Add(additionalExit);
+            Debug.Log(oldRoom.Type + " exits: " + string.Join(", ", _exits));
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
         }

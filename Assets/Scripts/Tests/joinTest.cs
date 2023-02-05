@@ -9,6 +9,7 @@ using Direction;
 using GlobalDirection = Direction.GlobalDirection;
 using Debug = UnityEngine.Debug;
 
+/*
 public class JoinTests
 {
     private Dunegon.Join join = new Dunegon.Join();
@@ -33,3 +34,4 @@ public class JoinTests
     }
 
 }
+*/

@@ -121,7 +121,7 @@ namespace Dunegon {
                     AddSegment(segment);
                     if (segment is JoinSegment) {
                         Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
-                        join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList);
+                        join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList, levelMap);
                     } else {
                         var addOnSegments = segment.GetAddOnSegments();
                         if (addOnSegments.Count > 0) {
@@ -149,14 +149,16 @@ namespace Dunegon {
             yield return null;
         }
 
-        private void AddSegment(Segment.Segment segment)
+        private void AddSegment(Segment.Segment segment, bool scan = true)
         {
-            InstantiateExits(segment);
             var tiles = segment.GetTiles();
             var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(segment.NeededSpace(), segment.X, segment.Z, segment.GlobalDirection);
             levelMap.AddCooridnates(globalSpaceNeeded, 8);
             levelMap.AddCooridnates(tiles, 1);
-            ShowMarks(segment); // Debug show neededspace
+            if (scan) {
+                InstantiateExits(segment);
+                ShowMarks(segment); // Debug show neededspace
+            }
             SetInstantiatedTiles(segment, tiles);
             segmentList.Add(segment);
         }
