@@ -220,6 +220,16 @@ namespace Segment {
             }
             return gSegments;
         }
+
+        protected void AddRemoveExit(SegmentExit addRemoveExit) {
+            var exitIndex = _exits.FindIndex(exit => exit.X == addRemoveExit.X && exit.Z == addRemoveExit.Z);
+            if (exitIndex > 0) {
+                _exits.RemoveAt(exitIndex);
+            }
+            else {
+                _exits.Add(addRemoveExit);
+            }
+        }
     }
 
     public class Room3x3Segment : Room {
@@ -229,9 +239,9 @@ namespace Segment {
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 3, 2)}), x, z, gDirection, true);
         }
 
-        public Room3x3Segment(Room3x3Segment oldRoom, SegmentExit additionalExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+        public Room3x3Segment(Room3x3Segment oldRoom, SegmentExit addRemoveExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
             _exits = oldRoom.Exits;
-            _exits.Add(additionalExit);
+            AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
         }
@@ -263,9 +273,9 @@ namespace Segment {
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 4, 2)}), x, z, gDirection, true);
         }
 
-        public Room3x4Segment(Room3x4Segment oldRoom, SegmentExit additionalExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+        public Room3x4Segment(Room3x4Segment oldRoom, SegmentExit addRemoveExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
             _exits = oldRoom.Exits;
-            _exits.Add(additionalExit);
+            AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
         }
@@ -303,18 +313,17 @@ namespace Segment {
             _zLength = zLength;
             _type = segmentType;
             (_exits, _entry) = GetVariableLengthExits(x, z, gDirection, _xLength, _zLength, forks);
-            if (isReal) Debug.Log("VariableRoom" + xLength + "x" + zLength + " exitCoord&Direction: " + GetExitCoord(_exits));
             _tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -_entry, _xLength - 1, (_zLength - 1) - _entry)}), x, z, gDirection), X, Z, gDirection);
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, (-_entry - 1), _xLength, _zLength - _entry)}), x, z, gDirection, true);
         }
 
-        public RoomVariableSegment(RoomVariableSegment oldRoom, SegmentExit additionalExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+        public RoomVariableSegment(RoomVariableSegment oldRoom, SegmentExit addRemoveExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent)
+        {
             _xLength = oldRoom.XLength;
             _zLength = oldRoom.ZLength;
             _entry = oldRoom.Entry;
             _exits = oldRoom.Exits;
-            _exits.Add(additionalExit);
-            Debug.Log(oldRoom.Type + " exits: " + string.Join(", ", _exits));
+            AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
         }
@@ -356,7 +365,7 @@ namespace Segment {
             if (forks == 1) {
                 return new List<int>() {0,10,20,12,7,4,3,2,1};
             }
-            return new List<int>() {40,30,20,12,7,4,3,2,1};
+            return new List<int>() {30,30,20,12,7,4,3,2,1};
         }
 
         private List<int> GetPotentialExitsByLength(int length) {

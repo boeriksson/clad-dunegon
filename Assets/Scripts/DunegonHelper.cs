@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using Random = UnityEngine.Random;
 using Debug = UnityEngine.Debug;
@@ -40,7 +42,8 @@ namespace Dunegon {
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
                     } else {
-                        int segmentWeight = segmentType.GetSegmentTypeWeight(forks);
+                        int straigthParentChain = GetStraightParentChain(parent);
+                        int segmentWeight = segmentType.GetSegmentTypeWeight(forks, straigthParentChain);
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (segmentType, segmentWeight));
                     }
@@ -67,6 +70,14 @@ namespace Dunegon {
             return new StopSegment(x, z, gDirection, parent);
         }
 
+        public int GetStraightParentChain(Segment.Segment segment, int ix = 0) {
+            if (segment == null) return 0;
+            var straightParents = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Join};
+            if (!straightParents.Contains(segment.Type)) return ix;
+            if (segment.Parent == null) return ix;
+            return GetStraightParentChain(segment.Parent, ix++);
+        }
+
         public (bool, List<(int, int)>) checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
             var globalJoinableKrockCoord = new List<(int, int)>();
             foreach((int, int) space in globalSpaceNeeded) {
@@ -88,5 +99,116 @@ namespace Dunegon {
             }
             return result;
         }
+        public (int, int) GetLocalCooridnatesForSegment(Segment.Segment segment, (int, int) gCoord) { 
+            switch(segment.GlobalDirection) {
+                case GlobalDirection.North: {
+                    return (gCoord.Item1 - segment.X, gCoord.Item2 - segment.Z);
+                }
+                case GlobalDirection.East: {
+                    return (gCoord.Item2 - segment.Z, segment.X - gCoord.Item1);
+                }
+                case GlobalDirection.South: {
+                    return (segment.X - gCoord.Item1, segment.Z - gCoord.Item2);
+                }
+                case GlobalDirection.West: {
+                    return (segment.Z - gCoord.Item2, gCoord.Item1 - segment.X);
+                }
+            }
+            throw new Exception("Segment.Globaldirection not reqognized..");
+        }
+        public Segment.Segment RedoSegmentWithOneLessExit(Segment.Segment redoSegment, (int x, int z) exit) {
+            void LogProblem(Segment.Segment redoSegment, int leX, int leZ) {
+                Debug.Log("RedoSegmentWithOneLessExit problem---------------------------------------\n" + 
+                "redoSegment: {" + redoSegment.X + ", " + redoSegment.Z + "} gDirection: " + redoSegment.GlobalDirection + "\n" +
+                "Remove exit on " + redoSegment.Type + " exitToRemove: {" + leX + ", " + leZ + "}\n" + 
+                "----------------------------------------------------------------------------");
+            }
+            (int leX, int leZ) = GetLocalCooridnatesForSegment(redoSegment, (exit.x, exit.z));
+            Debug.Log("RedoSegmentWithOneLessExit type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ")" );
+            switch (redoSegment.Type) {
+                case SegmentType.LeftRight: {
+                    if (leX == 0 && leZ == -1) {
+                        Debug.Log("LeftRight - left");
+                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    } 
+                    if (leX == 0 && leZ == 1) {
+                        Debug.Log("LeftRight - right");
+                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.StraightRight: {
+                    if (leX == 1 && leZ == 0) {
+                        Debug.Log("StraightRight - right");
+                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    } 
+                    if (leX == 0 && leZ == 1) {
+                        Debug.Log("StraightRight - straight");
+                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.StraightLeft: {
+                    if (leX == 1 && leZ == 0) {
+                        Debug.Log("StraightLeft - left");
+                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    } 
+                    if (leX == 0 && leZ == -1) {
+                        Debug.Log("StraightLeft - straight");
+                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    }
+                    break;
+                }
+                case SegmentType.LeftStraightRight: {
+                    if (leX == 1 && leZ == 0) {
+                        Debug.Log("LeftStraightRight - leftRight");
+                        return SegmentType.LeftRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    } 
+                    if (leX == 0 && leZ == 1) {
+                        Debug.Log("LeftStraightRight - straightRight");
+                        return SegmentType.StraightRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    }
+                    if (leX == 0 && leZ == -1) {
+                        Debug.Log("LeftStraightRight - straightLeft");
+                        return SegmentType.StraightLeft.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                    }
+                    break;
+                }
+                default: {
+                    if (redoSegment is Room) {
+                        SegmentExit sExit = null;
+                        try {
+                            (int geX, int geZ) = DirectionConversion.GetGlobalCoordinatesFromLocal(new List<(int, int)>() {(leX, leZ)}, redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection)[0];
+                            sExit = redoSegment.GetExitByCoord(geX, geZ);
+                        } catch (RedoSegmentException) {
+                            string redoSegExits = "";
+                            foreach (SegmentExit ex in redoSegment.Exits) {
+                                redoSegExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
+                            }
+                            Debug.Log("RedoSegmentWithOneLessExit problem---------------------------------------\n" + 
+                            "redoSegment: {" + redoSegment.X + ", " + redoSegment.Z + "} gDirection: " + redoSegment.GlobalDirection + "\n" +
+                            "Remove exit on " + redoSegment.Type + " exitToRemove: {" + leX + ", " + leZ + "}\n" + 
+                            "exits on redoSegment: \n" + 
+                            redoSegExits +
+                            "----------------------------------------------------------------------------");
+                        }
+                        if (redoSegment is Room3x3Segment) {
+                            return new Room3x3Segment((Room3x3Segment)redoSegment, sExit);
+                        } else if (redoSegment is Room3x4Segment) {
+                            return new Room3x4Segment((Room3x4Segment)redoSegment, sExit);
+                        } else if (redoSegment is RoomVariableSegment) {
+                            return new RoomVariableSegment((RoomVariableSegment)redoSegment, sExit);
+                        }
+                    }
+                    break;
+                }
+            }
+            LogProblem(redoSegment, leX, leZ);
+            throw new RedoSegmentException("RedoSegmentWithOneLessExit segment not found...");
+        }
+    }
+
+    public class RedoSegmentException : Exception {
+        public RedoSegmentException(string message) : base(message) {}
     }
 }

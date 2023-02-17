@@ -77,6 +77,12 @@ namespace Segment {
             }
         }
 
+        public SegmentExit GetExitByCoord(int x, int z) {
+            var exitIndex = _exits.FindIndex(exit => x == exit.X && z == exit.Z);
+            if (exitIndex < 0) throw new Dunegon.RedoSegmentException("GetExitByCoord indexOutOfBounds ix: " + exitIndex);
+            return _exits[exitIndex];
+        }
+
         public abstract List<(int, int)> GetTiles();
         public abstract List<(int, int)> NeededSpace();
         public virtual List<Segment> GetAddOnSegments() {

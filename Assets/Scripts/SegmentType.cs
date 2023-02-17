@@ -92,23 +92,33 @@ namespace Segment {
             }
         }
 
-        public static int GetSegmentTypeWeight(this SegmentType segmentType, int forks) {
-            var forksConstant = 1f;
-            if (forks < 3) {
+        public static int GetSegmentTypeWeight(this SegmentType segmentType, int forks, int straigthParentChain) {
+            var forksConstant = 1f; //if there are few threads active, we increase forking segments weight
+            if (forks == 1) {
+                forksConstant = 2f;
+            } else if (forks < 3) {
                 forksConstant = 1.5f;
             } else if (forks > 10) {
                 forksConstant = 0.5f;
             }   
+            var straightConstraint = 1f; //if there are many nonbranching segments in a row, we lower their weight
+            if (straigthParentChain > 2) {
+                straightConstraint = 1.5f;
+            } else if (straigthParentChain > 5) {
+                straightConstraint = 2f;
+            } else if (straigthParentChain > 8) {
+                straightConstraint = 3f;
+            }
         
             switch (segmentType) {
                 case SegmentType.Straight: {
-                    return 80;
+                    return (int)Math.Round(60/Math.Max(straightConstraint, forksConstant), 0);
                 }
                 case SegmentType.Right: {
-                    return 15;
+                    return (int)Math.Round(15/straightConstraint, 0);
                 }
                 case SegmentType.Left: {
-                    return 15;
+                    return (int)Math.Round(15/straightConstraint, 0);
                 }
                 case SegmentType.StraightRight: {
                     return (int)Math.Round(4 * forksConstant, 0);

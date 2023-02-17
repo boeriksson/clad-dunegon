@@ -9,6 +9,7 @@ using SegmentType = Segment.SegmentType;
 using GlobalDirection = Direction.GlobalDirection;
 using DirectionConversion = Direction.DirectionConversion;
 using UnityEngine;
+using JoinException = Dunegon.JoinException;
 using LevelMap = level.LevelMap;
 
 using Debug = UnityEngine.Debug;
@@ -120,8 +121,13 @@ namespace Dunegon {
                 if (!(segment is StopSegment)) {
                     AddSegment(segment);
                     if (segment is JoinSegment) {
-                        Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
-                        join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList, levelMap);
+                        try {
+                            Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
+                            join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList, levelMap);
+                        } catch (JoinException) {
+                            Debug.Log("JoinException - backing out");
+                            BackoutDeadEnd(segment, 0, 0, workingSet.Count);
+                        }
                     } else {
                         var addOnSegments = segment.GetAddOnSegments();
                         if (addOnSegments.Count > 0) {
@@ -237,19 +243,40 @@ namespace Dunegon {
             }
         }
 
+        private bool isBackableSegment(Segment.Segment segment) {
+            var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck, SegmentType.Join};
+            if (!backableSegmentsArray.Contains(segment.Type)) return false;
+            if (segment.Exits.Count <= 1) return true;
+            if (!segmentList.Exists(s => s.Parent == segment)) {
+                Debug.Log("isBackable segment - segment with several exits is parent of none... backout! segment type: " + segment.Type);
+                return true;
+            }
+            return false;
+        }
+
         private Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int workingSetSize) {
             var backedOutSegment = segment;
-            var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck};
-            if (segment.Exits.Count <= 1 && backableSegmentsArray.Contains(segment.Type)) {
+            if (isBackableSegment(segment)) {
                 ClearSegment(segment);
                 backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z, workingSetSize);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
-                    var segmentExits = segment.Exits;
-                    var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                    var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
-                    AddSegment(stopSegment);
-                    //segmentExits.Remove(segmentExitToRemove);
+                    try {
+                        var newSegment = dHelper.RedoSegmentWithOneLessExit(segment, (exitX, exitZ));
+                        ClearSegment(segment);
+                        AddSegment(newSegment, false);
+                    } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
+                        Debug.Log("RedoSegmentException message: " + rsex.Message);
+                        var segmentExits = segment.Exits;
+                        string segExits = "";
+                        foreach (SegmentExit ex in segment.Exits) {
+                            segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
+                        }
+                        Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
+                        var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
+                        var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
+                        AddSegment(stopSegment);
+                    }
                 }
             }
             return backedOutSegment;
