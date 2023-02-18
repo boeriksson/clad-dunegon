@@ -66,6 +66,9 @@ namespace Segment {
             get {
                 return _parent;
             }
+            set {
+                _parent = value;
+            }
         }
 
         public List<GameObject> Instantiated {

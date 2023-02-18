@@ -28,8 +28,6 @@ namespace Dunegon {
         private int currentSegment = 0;
         private DunegonHelper dHelper = new DunegonHelper();
 
-        private Join join = new Join();
-
         private EnvironmentMgr environmentMgr;
 
         private List<(SegmentExit, Segment.Segment)> workingSet = new List<(SegmentExit, Segment.Segment)>();
@@ -123,10 +121,24 @@ namespace Dunegon {
                     if (segment is JoinSegment) {
                         try {
                             Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
-                            join.doJoin((JoinSegment)segment, AddSegment, ClearSegment, segmentList, levelMap);
-                        } catch (JoinException) {
-                            Debug.Log("JoinException - backing out");
-                            BackoutDeadEnd(segment, 0, 0, workingSet.Count);
+                            new Join(
+                                (JoinSegment)segment, 
+                                AddSegment, 
+                                ClearSegment,
+                                segmentList, 
+                                levelMap
+                            );
+                        } catch (JoinException ex) {
+                            Debug.Log("JoinException - backing out - message: " + ex.Message);
+                            var backout = new Backout(
+                                dHelper,
+                                ClearSegment, 
+                                AddSegment,
+                                segmentList, 
+                                workingSet.Count, 
+                                restartAfterBackWhenWSIsBelow
+                    );
+                            backout.BackoutDeadEnd(segment, 0, 0);
                         }
                     } else {
                         var addOnSegments = segment.GetAddOnSegments();
@@ -142,8 +154,17 @@ namespace Dunegon {
                     currentSegment++;
                 } else {
                     var workingSetSize = workingSet.Count;
-                    var backedOutSegment = BackoutDeadEnd(segment, 0, 0, workingSetSize);
-                    Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: " + backedOutSegment.Type);
+                    Debug.Log("Starting BackoutDeadEnd type: " + segment.Type + " ------------------------------------------");
+                    var backout = new Backout(
+                        dHelper,
+                        ClearSegment, 
+                        AddSegment,
+                        segmentList, 
+                        workingSetSize, 
+                        restartAfterBackWhenWSIsBelow
+                    );
+                    var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0);
+                    Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: " + backedOutSegment.Type + " ----------------------------------------");
                     if (workingSetSize < restartAfterBackWhenWSIsBelow) {
                         nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
                     }
@@ -154,8 +175,10 @@ namespace Dunegon {
             workingSet.AddRange(nextWorkingSet);
             yield return null;
         }
-
-        private void AddSegment(Segment.Segment segment, bool scan = true)
+        private void AddSegment(Segment.Segment segment) {
+            AddSegment(segment, true);
+        }
+        private void AddSegment(Segment.Segment segment, bool scan)
         {
             var tiles = segment.GetTiles();
             var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(segment.NeededSpace(), segment.X, segment.Z, segment.GlobalDirection);
@@ -211,14 +234,6 @@ namespace Dunegon {
             }
         }
 
-/*
-        private void RotateSegment((int, int, GlobalDirection, float, GameObject) gSegment, GameObject iGSegment, Segment.Segment segment) {
-            var segmentRotation = gSegment.Item4;
-            var rotation = 0.0f;
-            Debug.Log("Segment: " + segment.Type + " Rotation: " + rotation + " GlobalDirection: " + gSegment.Item3);
-            iGSegment.transform.Rotate(0.0f, rotation, 0.0f, Space.Self);
-        }
-*/
         private static void AddExitsToNextWorkingSet(List<(SegmentExit, Segment.Segment)> nextWorkingSet, Segment.Segment segment)
         {
             var segmentsWithExits = new List<(SegmentExit, Segment.Segment)>();
@@ -243,47 +258,9 @@ namespace Dunegon {
             }
         }
 
-        private bool isBackableSegment(Segment.Segment segment) {
-            var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck, SegmentType.Join};
-            if (!backableSegmentsArray.Contains(segment.Type)) return false;
-            if (segment.Exits.Count <= 1) return true;
-            if (!segmentList.Exists(s => s.Parent == segment)) {
-                Debug.Log("isBackable segment - segment with several exits is parent of none... backout! segment type: " + segment.Type);
-                return true;
-            }
-            return false;
-        }
-
-        private Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int workingSetSize) {
-            var backedOutSegment = segment;
-            if (isBackableSegment(segment)) {
-                ClearSegment(segment);
-                backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z, workingSetSize);
-            } else { // We're gonna remove the exit in segment where we roll back to
-                if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
-                    try {
-                        var newSegment = dHelper.RedoSegmentWithOneLessExit(segment, (exitX, exitZ));
-                        ClearSegment(segment);
-                        AddSegment(newSegment, false);
-                    } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
-                        Debug.Log("RedoSegmentException message: " + rsex.Message);
-                        var segmentExits = segment.Exits;
-                        string segExits = "";
-                        foreach (SegmentExit ex in segment.Exits) {
-                            segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
-                        }
-                        Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
-                        var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                        var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
-                        AddSegment(stopSegment);
-                    }
-                }
-            }
-            return backedOutSegment;
-        }
-
         private void ClearSegment(Segment.Segment segment) {
             var instantiatedTiles = segment.Instantiated;
+            Debug.Log("ClearSegment - Destroying " + instantiatedTiles.Count + " tiles from " + segment.Type);
             foreach (GameObject tile in instantiatedTiles) {
                 Destroy(tile);
             }
