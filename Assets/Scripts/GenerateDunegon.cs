@@ -119,7 +119,6 @@ namespace Dunegon {
                 );
                 if (!(segment is StopSegment)) {
                     if (segment is JoinSegment) {
-                        AddSegment(segment, true, "magenta");
                         try {
                             Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
                             new Join(
@@ -138,7 +137,7 @@ namespace Dunegon {
                                 SetSegmentColor,
                                 AddSegment,
                                 segmentList, 
-                                workingSet.Count, 
+                                workingSet, 
                                 restartAfterBackWhenWSIsBelow
                             );
                             backout.BackoutDeadEnd(segment, 0, 0);
@@ -165,7 +164,7 @@ namespace Dunegon {
                         SetSegmentColor,
                         AddSegment,
                         segmentList, 
-                        workingSetSize, 
+                        workingSet, 
                         restartAfterBackWhenWSIsBelow
                     );
                     var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0);

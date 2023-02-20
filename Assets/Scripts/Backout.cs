@@ -16,7 +16,7 @@ namespace Dunegon {
         private List<Segment.Segment> segmentList;
         private Action<Segment.Segment, bool, string> AddSegment;  
         private DunegonHelper dHelper;
-
+        private List<(SegmentExit, Segment.Segment)> workingSet;
         private int workingSetSize;
         private int restartAfterBackWhenWSIsBelow;
         public Backout(
@@ -25,7 +25,7 @@ namespace Dunegon {
             Action<Segment.Segment, string> _SetSegmentColor,
             Action<Segment.Segment, bool, string> _AddSegment,
             List<Segment.Segment> _segmentList, 
-            int _workingSetSize, 
+            List<(SegmentExit, Segment.Segment)> _workingSet,
             int _restartAfterBackWhenWSIsBelow
         ) {
             dHelper = _dHelper;
@@ -33,7 +33,8 @@ namespace Dunegon {
             SetSegmentColor = _SetSegmentColor;
             AddSegment = _AddSegment;
             segmentList = _segmentList;
-            workingSetSize = _workingSetSize;
+            workingSet = _workingSet;
+            workingSetSize = _workingSet.Count;
             restartAfterBackWhenWSIsBelow = _restartAfterBackWhenWSIsBelow;
         }
 
@@ -41,6 +42,7 @@ namespace Dunegon {
             var backedOutSegment = segment;
             var segmentChildren = dHelper.GetChildrenOfSegment(segment, segmentList);
             if (isBackableSegment(segment, segmentChildren)) {
+                dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
                 //ClearSegment(segment);
                 SetSegmentColor(segment, "grey");
                 backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z);
@@ -160,7 +162,9 @@ namespace Dunegon {
                         SegmentExit sExit = null;
                         try {
                             (int geX, int geZ) = DirectionConversion.GetGlobalCoordinatesFromLocal(new List<(int, int)>() {(leX, leZ)}, redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection)[0];
+                            Debug.Log("RedoSegmentWithOneLessExit global exit coord: (" + geX + ", " + geZ + ")");
                             sExit = redoSegment.GetExitByCoord(geX, geZ);
+                            Debug.Log("redoSegment Room exit found!");
                         } catch (RedoSegmentException) {
                             string redoSegExits = "";
                             foreach (SegmentExit ex in redoSegment.Exits) {

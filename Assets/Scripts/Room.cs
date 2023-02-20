@@ -224,9 +224,10 @@ namespace Segment {
         protected void AddRemoveExit(SegmentExit addRemoveExit) {
             var exitIndex = _exits.FindIndex(exit => exit.X == addRemoveExit.X && exit.Z == addRemoveExit.Z);
             if (exitIndex > 0) {
+                Debug.Log("Room.AddRemoveExit exit exists - removing at (" + addRemoveExit.X + ", " + addRemoveExit.Z + ")" );
                 _exits.RemoveAt(exitIndex);
-            }
-            else {
+            } else {
+                Debug.Log("Room.AddRemoveExit exit not found, adding to _exits - removing at (" + addRemoveExit.X + ", " + addRemoveExit.Z + ")" );
                 _exits.Add(addRemoveExit);
             }
         }

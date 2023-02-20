@@ -28,6 +28,7 @@ namespace Dunegon {
             Debug.Log("Start join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
             segmentList = _segmentList;
             levelMap = _levelMap;
+
             (List<Segment.Segment> addOnSegments, (int, int) exitCoord, (int, int) joinCoord) = GetJoinAddOnSegments();
             Debug.Log("AddonSegments: " + addOnSegments.Count + " exitCoord: " + exitCoord.ToString() + " joinCoord: " + joinCoord.ToString());
             joinSegment.SetAddOnSegments(addOnSegments);
@@ -40,7 +41,7 @@ namespace Dunegon {
                 AddSegment(addSegment, false, "yellow");
             }
             try {
-                RemoveDanglingWorkingTreads(workingSet, joiningSegment);
+                dHelper.RemoveDanglingWorkingTreads(workingSet, joiningSegment);
                 ReplaceJoiningSegmentWithPlusExitSegment(
                     joiningSegment, 
                     joinSegment, 
@@ -55,9 +56,6 @@ namespace Dunegon {
                 throw new JoinException(ex.Message);
             }
             Debug.Log("End join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
-        }
-        private void RemoveDanglingWorkingTreads(List<(SegmentExit, Segment.Segment)> workingSet, Segment.Segment joiningSegment) {
-            workingSet.RemoveAll(workItem => workItem.Item2 == joiningSegment);
         }
 
         private (List<Segment.Segment>, (int, int), (int, int)) GetJoinAddOnSegments() {
@@ -133,14 +131,14 @@ namespace Dunegon {
             (int xj, int zj) = joinSegment.JoinCoord;
             var ix = 0;
             var joinExit = joinSegment.Exits[0];
-            int xc = joinExit.X;                                      //cursor
-            int zc = joinExit.Z;                                      //
+            int xc = joinSegment.X;                                      //cursor
+            int zc = joinSegment.Z;                                      //
             GlobalDirection cDirection = joinSegment.GlobalDirection; //
 
             var prePath = new List<(int, int, GlobalDirection)>();
             Debug.Log("FindPath xc/zc: (" + xc + ", " + zc + ") xj/zj: (" + xj + ", " + zj + ")");
             if (!(xc == xj && zc == zj)) {
-                prePath.Add((xc, zc, joinExit.Direction));
+                prePath.Add((xc, zc, joinSegment.GlobalDirection));
                 GetPrePathRecursive(prePath, ref xc, ref zc, ref ix, cDirection, xj, zj);
             } else {
                 Debug.Log("joinSegment is joiningSegments exit");
@@ -152,12 +150,11 @@ namespace Dunegon {
             (xj, zj) = joinSegment.JoinCoord;
             for(int i = 0; i < prePath.Count; i++) {
                 var step = prePath[i];
-                var parent = i == 0 ? joinSegment : path[i - 1];
+                var parent = i == 0 ? joinSegment.Parent : path[i - 1];
                 //var segment = Segment.Q;
-                if (i == 0) { //first addonSegment after join - check/modify type of join!
-                    SegmentExit jExit = joinSegment.Exits[0];
-                    if (jExit.X != step.Item1 || jExit.Z != step.Item2) {
-                        Debug.Log("Wooohooooo joinExit not connected to stepSegment! joinExit: (" + jExit.X + ", " + jExit.Z + ") step0: (" + step.Item1 + "," + step.Item2 + ")");
+                if (i == 0) { //first addonSegment after join - Set parent to joinSegment's parent!
+                    if (joinSegment.X != step.Item1 || joinSegment.Z != step.Item2) {
+                        Debug.Log("Wooohooooo first addon not at joinSegment?: (" + joinSegment.X  + ", " + joinSegment.Z + ") step0: (" + step.Item1 + "," + step.Item2 + ")");
                     }
                 } 
                 if (i < prePath.Count - 1) {

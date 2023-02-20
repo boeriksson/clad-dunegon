@@ -148,7 +148,8 @@ namespace Segment {
     }
     
     /**
-        Joinsegment is a straightsegment initiating a chain of segments connecting to another "branch" of segments
+        Joinsegment is a non-instantiated segment initiating a chain of segments connecting to another "branch" of segments
+        It acts as a value carrier for setting up the Join
     */
     public class JoinSegment : Segment {
         private List<(int, int)> _space;
@@ -159,7 +160,7 @@ namespace Segment {
 
         public JoinSegment(int x, int z, GlobalDirection gDirection, Segment parent) : base(SegmentType.Join, x, z, gDirection, parent) {
             _exits = new List<SegmentExit>();
-            _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 1, 0, LocalDirection.Straight));
+            _exits.Add(new SegmentExit(_entryX, _entryZ, gDirection, 0, 0, LocalDirection.Straight));
             _space = new List<(int, int)>();
             _addOnSegments = new List<Segment>();
         }
@@ -167,7 +168,6 @@ namespace Segment {
         public override List<(int, int)> GetTiles()
         {
             List<(int, int)> tiles = new List<(int, int)>();
-            tiles.Add((_entryX, _entryZ));
             return tiles;
         }
 
@@ -184,17 +184,6 @@ namespace Segment {
 
         public void SetAddOnSegments(List<Segment> addOnSegments) {
             _addOnSegments = addOnSegments;
-        }
-
-        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
-            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
-            var rotations = new Dictionary<GlobalDirection, float>();
-            rotations.Add(GlobalDirection.North, 90.0f);
-            rotations.Add(GlobalDirection.East, 0.0f);
-            rotations.Add(GlobalDirection.South, 90.0f);
-            rotations.Add(GlobalDirection.West, 0.0f);
-            gSegments.Add((_entryX, _entryZ, _gDirection, getRotationByDirection(rotations), environmentMgr.straight));
-            return gSegments;
         }
 
         public (int, int) JoinExitCoord {

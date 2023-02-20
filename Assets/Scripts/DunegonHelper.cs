@@ -59,7 +59,7 @@ namespace Dunegon {
                 if (collectWeight >= ran) {
                     var segment = segmentType.GetSegmentByType(x, z, gDirection, forks, parent, true);
                     if (segment is JoinSegment) {
-                        Debug.Log("JoinSegment krock: ");
+                        Debug.Log("JoinSegment krock: (" + segment.X + ", " + segment.Z + ")");
                         ((JoinSegment)segment).KrockCoords = krockCoords;
                         return segment;
                     }
@@ -132,6 +132,17 @@ namespace Dunegon {
                 result += ", (" + tuple.Item1 + ", " + tuple.Item2 + ")";
             }
             return result;
+        }
+
+        public void RemoveDanglingWorkingTreads(List<(SegmentExit, Segment.Segment)> workingSet, Segment.Segment segment) {
+            //workingSet.RemoveAll(workItem => workItem.Item2 == joiningSegment);
+            for (int i = workingSet.Count - 1; i >= 0; i--) {
+                if (workingSet[i].Item2 == segment) {
+                    var wsExit = workingSet[i].Item1;
+                    Debug.Log("Backout RemoveDanglingWorkingTreads found workItem with exit: (" + wsExit.X + ", " + wsExit.Z + ")");
+                    workingSet.RemoveAt(i);
+                }
+            }
         }
     }
 }
