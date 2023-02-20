@@ -45,6 +45,9 @@ namespace Dunegon {
                 SetSegmentColor(segment, "grey");
                 backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z);
             } else { // We're gonna remove the exit in segment where we roll back to
+                if (exitX == 0 && exitZ == 0) {
+                    Debug.Log("Uh oh -> BackoutSegment exitX & exitZ is 0 in the nonBackable RedoSegmentWithOneLessExit segment...");
+                }
                 if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
                     try {
                         var newSegment = RedoSegmentWithOneLessExit(
@@ -75,15 +78,19 @@ namespace Dunegon {
             //var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck, SegmentType.Join};
             //if (!backableSegmentsArray.Contains(segment.Type)) return false;
             if (segment is Room) return false;
-            if (segment.Exits.Count <= 1) return true;
+            if (segment.Exits.Count <= 1) {
+                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") exitCount <= 1: " + segment.Exits.Count + " returning true");
+                return true;
+            }
             if (segmentChildren.Count < 1) {
-                Debug.Log("isBackableSegment segmentChildren: " + segmentChildren.Count + " returning true..");
+                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") segmentChildren: " + segmentChildren.Count + " returning true..");
                 return true;
             }
             if (!segmentList.Exists(s => s.Parent == segment)) {
-                Debug.Log("isBackable segment - segment with several exits is parent of none... backout! segment type: " + segment.Type);
+                Debug.Log("isBackable segment - segment (" + segment.X + ", " + segment.Z + ") with several exits is parent of none... backout! segment type: " + segment.Type);
                 return true;
             }
+            Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + " Segment is not backable!");
             return false;
         }
 
@@ -98,7 +105,7 @@ namespace Dunegon {
                 "----------------------------------------------------------------------------");
             }
             (int leX, int leZ) = dHelper.GetLocalCooridnatesForSegment(redoSegment, (exit.x, exit.z));
-            Debug.Log("RedoSegmentWithOneLessExit type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ")" );
+            Debug.Log("RedoSegmentWithOneLessExit  (" + redoSegment.X + ", " + redoSegment.Z + ") type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ")" );
             switch (redoSegment.Type) {
                 case SegmentType.LeftRight: {
                     if (leX == 0 && leZ == -1) {

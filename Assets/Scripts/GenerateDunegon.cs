@@ -11,6 +11,7 @@ using DirectionConversion = Direction.DirectionConversion;
 using UnityEngine;
 using JoinException = Dunegon.JoinException;
 using LevelMap = level.LevelMap;
+using TMPro;
 
 using Debug = UnityEngine.Debug;
 
@@ -126,7 +127,8 @@ namespace Dunegon {
                                 AddSegment, 
                                 ClearSegment,
                                 segmentList, 
-                                levelMap
+                                levelMap,
+                                workingSet
                             );
                         } catch (JoinException ex) {
                             Debug.Log("JoinException - backing out - message: " + ex.Message);
@@ -156,7 +158,7 @@ namespace Dunegon {
                     currentSegment++;
                 } else {
                     var workingSetSize = workingSet.Count;
-                    Debug.Log("Starting BackoutDeadEnd type: " + segment.Type + " ------------------------------------------");
+                    Debug.Log("Starting BackoutDeadEnd segment: (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " ------------------------------------------");
                     var backout = new Backout(
                         dHelper,
                         ClearSegment, 
@@ -167,7 +169,7 @@ namespace Dunegon {
                         restartAfterBackWhenWSIsBelow
                     );
                     var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0);
-                    Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: " + backedOutSegment.Type + " ----------------------------------------");
+                    Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: (" + backedOutSegment.X + ", " + backedOutSegment.Z + ") " + backedOutSegment.Type + " ----------------------------------------");
                     if (workingSetSize < restartAfterBackWhenWSIsBelow) {
                         nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
                     }
@@ -275,10 +277,12 @@ namespace Dunegon {
                     if (color != null) {
                         iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
                     } 
-                    //GameObject debugText = Instantiate(environmentMgr.debugText, new Vector3(gSegment.Item1 * scale, 0, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
-                    //debugText.transform.SetParent(environmentMgr.transform);
-                
-                    
+                    TMP_Text debugText = Instantiate(environmentMgr.debugText, new Vector3(gSegment.Item1 * scale, -0.98f, gSegment.Item2 * scale), Quaternion.identity);
+                    var debugTextComp = debugText.GetComponent<TextMeshPro>();
+                    debugTextComp.SetText("(" + gSegment.Item1 + "," + gSegment.Item2 + ")");
+                    debugTextComp.color = new Color32(255, 99, 71, 255);
+                    debugText.transform.Rotate(90f, 90f, 0f, Space.Self);
+                    debugText.transform.SetParent(environmentMgr.transform);
                     instantiatedGSegments.Add(iGSegment);
                 }
                 segment.Instantiated = instantiatedGSegments;

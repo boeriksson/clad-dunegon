@@ -2,7 +2,9 @@
     "name": "ScriptAssembly",
     "rootNamespace": "",
     "references": [
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.TextMeshPro.Editor",
+        "Unity.TextMeshPro.Editor.Tests"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

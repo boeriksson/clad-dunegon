@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
+using System;
 
 public class EnvironmentMgr : MonoBehaviour {
     public GameObject cornerCurved;
@@ -16,6 +18,8 @@ public class EnvironmentMgr : MonoBehaviour {
     public GameObject floorCelingCornerLeftExit;
     public GameObject floorCelingCornerLeftRightExit;
     public GameObject floorCelingExit;
+
+    public TMP_Text debugText;
 
 
     // Start is called before the first frame update

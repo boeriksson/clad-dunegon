@@ -14,13 +14,15 @@ namespace Dunegon {
         private List<Segment.Segment> segmentList;
         private LevelMap levelMap;
         private JoinSegment joinSegment;
+        private List<(SegmentExit, Segment.Segment)> workingSet;
 
         public Join(
             JoinSegment _joinSegment, 
             Action<Segment.Segment, bool, string> AddSegment, 
             Action<Segment.Segment> ClearSegment,  
             List<Segment.Segment> _segmentList, 
-            LevelMap _levelMap
+            LevelMap _levelMap,
+            List<(SegmentExit, Segment.Segment)> workingSet
         ) {
             joinSegment = _joinSegment;
             Debug.Log("Start join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
@@ -38,6 +40,7 @@ namespace Dunegon {
                 AddSegment(addSegment, false, "yellow");
             }
             try {
+                RemoveDanglingWorkingTreads(workingSet, joiningSegment);
                 ReplaceJoiningSegmentWithPlusExitSegment(
                     joiningSegment, 
                     joinSegment, 
@@ -52,6 +55,9 @@ namespace Dunegon {
                 throw new JoinException(ex.Message);
             }
             Debug.Log("End join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
+        }
+        private void RemoveDanglingWorkingTreads(List<(SegmentExit, Segment.Segment)> workingSet, Segment.Segment joiningSegment) {
+            workingSet.RemoveAll(workItem => workItem.Item2 == joiningSegment);
         }
 
         private (List<Segment.Segment>, (int, int), (int, int)) GetJoinAddOnSegments() {
@@ -250,7 +256,7 @@ namespace Dunegon {
                     return segment;
                 }
             }
-            throw new JoinException("GetSegmentWithTile - segmentNotFound!");
+            throw new JoinException("GetSegmentWithTile (" + tileCoord.Item1 + ", " + tileCoord.Item2 + ") - segmentNotFound!");
         }
 
         private void ReplaceJoiningSegmentWithPlusExitSegment(

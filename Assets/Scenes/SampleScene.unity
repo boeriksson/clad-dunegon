@@ -295,6 +295,7 @@ MonoBehaviour:
   floorCelingCornerLeftExit: {fileID: 919132149155446097, guid: 54f0a682c270249a8a84600d423df64c, type: 3}
   floorCelingCornerLeftRightExit: {fileID: 919132149155446097, guid: 0aefc45f3af184edb905e35731b31c6c, type: 3}
   floorCelingExit: {fileID: 919132149155446097, guid: 4f7aaece000784f6dbc9165df108ca25, type: 3}
+  debugText: {fileID: 8476467268667550036, guid: da4fe575c921d4908807c0fc8edc7e6f, type: 3}
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
