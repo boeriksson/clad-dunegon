@@ -117,8 +117,8 @@ namespace Dunegon {
                     parentSegment
                 );
                 if (!(segment is StopSegment)) {
-                    AddSegment(segment);
                     if (segment is JoinSegment) {
+                        AddSegment(segment, true, "magenta");
                         try {
                             Debug.Log("JoinSegment x: " + segment.X + " z: " + segment.Z + " direction: " + segment.GlobalDirection);
                             new Join(
@@ -133,14 +133,16 @@ namespace Dunegon {
                             var backout = new Backout(
                                 dHelper,
                                 ClearSegment, 
+                                SetSegmentColor,
                                 AddSegment,
                                 segmentList, 
                                 workingSet.Count, 
                                 restartAfterBackWhenWSIsBelow
-                    );
+                            );
                             backout.BackoutDeadEnd(segment, 0, 0);
                         }
                     } else {
+                        AddSegment(segment);
                         var addOnSegments = segment.GetAddOnSegments();
                         if (addOnSegments.Count > 0) {
                             foreach(Segment.Segment addSegment in addOnSegments) {
@@ -158,6 +160,7 @@ namespace Dunegon {
                     var backout = new Backout(
                         dHelper,
                         ClearSegment, 
+                        SetSegmentColor,
                         AddSegment,
                         segmentList, 
                         workingSetSize, 
@@ -178,7 +181,7 @@ namespace Dunegon {
         private void AddSegment(Segment.Segment segment) {
             AddSegment(segment, true);
         }
-        private void AddSegment(Segment.Segment segment, bool scan)
+        private void AddSegment(Segment.Segment segment, bool scan, string strColor = "white")
         {
             var tiles = segment.GetTiles();
             var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(segment.NeededSpace(), segment.X, segment.Z, segment.GlobalDirection);
@@ -188,8 +191,46 @@ namespace Dunegon {
                 InstantiateExits(segment);
                 ShowMarks(segment); // Debug show neededspace
             }
-            SetInstantiatedTiles(segment, tiles);
+            Color color = GetColorByStr(strColor);
+            SetInstantiatedTiles(segment, tiles, color);
             segmentList.Add(segment);
+        }
+
+        private Color GetColorByStr(string strColor) {
+            switch (strColor) {
+                case "red": {
+                    return Color.red;
+                }
+                case "green": {
+                    return Color.green;
+                }
+                case "blue": {
+                    return Color.blue;
+                }
+                case "grey": {
+                    return Color.grey;
+                }
+                case "cyan": {
+                    return Color.cyan;
+                }
+                case "magenta": {
+                    return Color.magenta;
+                }
+                case "yellow": {
+                    return Color.yellow;
+                }
+                default: {
+                    return Color.white;
+                }
+            }
+        }
+
+        private void SetSegmentColor(Segment.Segment segment, string cStr) {
+            Color color = GetColorByStr(cStr);
+            List<GameObject> iGSegments = segment.Instantiated;
+            foreach(GameObject iGSegment in iGSegments) {
+                iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
+            }
         }
 
         private void RemoveOldMarksAndExits() {
@@ -212,6 +253,9 @@ namespace Dunegon {
         }
 
         private void SetInstantiatedTiles(Segment.Segment segment, List<(int, int)> tiles) {
+            SetInstantiatedTiles(segment, tiles, Color.white);
+        }
+        private void SetInstantiatedTiles(Segment.Segment segment, List<(int, int)> tiles, Color color) {
             var gSegments = segment.GetGSegments(environmentMgr);
             if (gSegments.Count == 0) {
                 var instantiatedTiles = new List<GameObject>();
@@ -228,6 +272,13 @@ namespace Dunegon {
                     GameObject iGSegment = Instantiate(gSegment.Item5, new Vector3(gSegment.Item1 * scale, 0, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
                     iGSegment.transform.Rotate(0.0f, gSegment.Item4, 0.0f, Space.Self);
                     iGSegment.transform.SetParent(environmentMgr.transform);
+                    if (color != null) {
+                        iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
+                    } 
+                    //GameObject debugText = Instantiate(environmentMgr.debugText, new Vector3(gSegment.Item1 * scale, 0, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
+                    //debugText.transform.SetParent(environmentMgr.transform);
+                
+                    
                     instantiatedGSegments.Add(iGSegment);
                 }
                 segment.Instantiated = instantiatedGSegments;

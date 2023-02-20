@@ -17,7 +17,7 @@ namespace Dunegon {
 
         public Join(
             JoinSegment _joinSegment, 
-            Action<Segment.Segment, bool> AddSegment, 
+            Action<Segment.Segment, bool, string> AddSegment, 
             Action<Segment.Segment> ClearSegment,  
             List<Segment.Segment> _segmentList, 
             LevelMap _levelMap
@@ -35,15 +35,22 @@ namespace Dunegon {
             Debug.Log("JoiningSegment type: " + joiningSegment.Type + " direction: " + joiningSegment.GlobalDirection);
             
             foreach (Segment.Segment addSegment in joinSegment.GetAddOnSegments()) {
-                AddSegment(addSegment, false);
+                AddSegment(addSegment, false, "yellow");
             }
-            ReplaceJoiningSegmentWithPlusExitSegment(
-                joiningSegment, 
-                joinSegment, 
-                exitCoord, 
-                AddSegment, 
-                ClearSegment
-            );
+            try {
+                ReplaceJoiningSegmentWithPlusExitSegment(
+                    joiningSegment, 
+                    joinSegment, 
+                    exitCoord, 
+                    AddSegment, 
+                    ClearSegment
+                ); 
+            } catch (JoinException ex) {
+                foreach (Segment.Segment addSegment in joinSegment.GetAddOnSegments()) {
+                    ClearSegment(addSegment);
+                }
+                throw new JoinException(ex.Message);
+            }
             Debug.Log("End join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
         }
 
@@ -250,14 +257,14 @@ namespace Dunegon {
             Segment.Segment joiningSegment, 
             JoinSegment joinSegment, 
             (int, int) exitCoord, 
-            Action<Segment.Segment, bool> AddSegment, 
+            Action<Segment.Segment, bool, string> AddSegment, 
             Action<Segment.Segment> ClearSegment
         ) {
             var localExitCoordinates = dHelper.GetLocalCooridnatesForSegment(joiningSegment, exitCoord);
             var joiningSegmentChildren = dHelper.GetChildrenOfSegment(joiningSegment, segmentList);
             var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, joinSegment, localExitCoordinates);
             ClearSegment(joiningSegment);
-            AddSegment(newSegment, false);
+            AddSegment(newSegment, false, "green");
             dHelper.AddNewParentToChildren(newSegment, joiningSegmentChildren);
         }
 

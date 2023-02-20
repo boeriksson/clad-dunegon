@@ -12,8 +12,9 @@ using Debug = UnityEngine.Debug;
 namespace Dunegon {
     public class Backout {
         private Action<Segment.Segment> ClearSegment;
+        private Action<Segment.Segment, string> SetSegmentColor;
         private List<Segment.Segment> segmentList;
-        private Action<Segment.Segment, bool> AddSegment;  
+        private Action<Segment.Segment, bool, string> AddSegment;  
         private DunegonHelper dHelper;
 
         private int workingSetSize;
@@ -21,13 +22,15 @@ namespace Dunegon {
         public Backout(
             DunegonHelper _dHelper, 
             Action<Segment.Segment> _ClearSegment, 
-            Action<Segment.Segment, bool> _AddSegment,
+            Action<Segment.Segment, string> _SetSegmentColor,
+            Action<Segment.Segment, bool, string> _AddSegment,
             List<Segment.Segment> _segmentList, 
             int _workingSetSize, 
             int _restartAfterBackWhenWSIsBelow
         ) {
             dHelper = _dHelper;
             ClearSegment = _ClearSegment;
+            SetSegmentColor = _SetSegmentColor;
             AddSegment = _AddSegment;
             segmentList = _segmentList;
             workingSetSize = _workingSetSize;
@@ -38,7 +41,8 @@ namespace Dunegon {
             var backedOutSegment = segment;
             var segmentChildren = dHelper.GetChildrenOfSegment(segment, segmentList);
             if (isBackableSegment(segment, segmentChildren)) {
-                ClearSegment(segment);
+                //ClearSegment(segment);
+                SetSegmentColor(segment, "grey");
                 backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
@@ -48,7 +52,7 @@ namespace Dunegon {
                             (exitX, exitZ)
                         );
                         ClearSegment(segment);
-                        AddSegment(newSegment, false);
+                        AddSegment(newSegment, false, "blue");
                         dHelper.AddNewParentToChildren(newSegment, segmentChildren);
                     } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
                         Debug.Log("RedoSegmentException message: " + rsex.Message);
@@ -60,7 +64,7 @@ namespace Dunegon {
                         Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
                         var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
                         var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
-                        AddSegment(stopSegment, true);
+                        AddSegment(stopSegment, true, "cyan");
                     }
                 }
             }
