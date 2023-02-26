@@ -18,6 +18,8 @@ namespace Segment {
 
         private Segment _parent;
 
+        private bool _join;
+
         private List<GameObject> _instantiated;
 
         public Segment(SegmentType type, int entryX, int entryZ, GlobalDirection gDirection, Segment parent) {
@@ -41,6 +43,14 @@ namespace Segment {
             }
             set {
                 _exits = value;
+            }
+        }
+        public bool Join {
+            get {
+                return _join;
+            }
+            set {
+                _join = value;
             }
         }
 

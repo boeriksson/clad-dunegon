@@ -8,57 +8,66 @@ using SegmentExit = Segment.SegmentExit;
 using DirectionConversion = Direction.DirectionConversion;
 using GlobalDirection = Direction.GlobalDirection;
 using Debug = UnityEngine.Debug;
+using RuntimeHelpers = System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace Dunegon {
     public class Backout {
         private Action<Segment.Segment> ClearSegment;
         private Action<Segment.Segment, string> SetSegmentColor;
-        private List<Segment.Segment> segmentList;
+        private Func<List<Segment.Segment>> GetSegmentList;
+        private Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment;
+        private Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren;
+        private Func<Segment.Segment, bool> IsBackableSegment;
         private Action<Segment.Segment, bool, string> AddSegment;  
         private DunegonHelper dHelper;
-        private List<(SegmentExit, Segment.Segment)> workingSet;
-        private int workingSetSize;
         private int restartAfterBackWhenWSIsBelow;
         public Backout(
-            DunegonHelper _dHelper, 
-            Action<Segment.Segment> _ClearSegment, 
-            Action<Segment.Segment, string> _SetSegmentColor,
-            Action<Segment.Segment, bool, string> _AddSegment,
-            List<Segment.Segment> _segmentList, 
-            List<(SegmentExit, Segment.Segment)> _workingSet,
-            int _restartAfterBackWhenWSIsBelow
+            DunegonHelper dHelper, 
+            Action<Segment.Segment> ClearSegment, 
+            Action<Segment.Segment, string> SetSegmentColor,
+            Action<Segment.Segment, bool, string> AddSegment,
+            Func<List<Segment.Segment>> GetSegmentList,
+            Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
+            Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren,
+            Func<Segment.Segment, bool> IsBackableSegment,
+            int restartAfterBackWhenWSIsBelow
         ) {
-            dHelper = _dHelper;
-            ClearSegment = _ClearSegment;
-            SetSegmentColor = _SetSegmentColor;
-            AddSegment = _AddSegment;
-            segmentList = _segmentList;
-            workingSet = _workingSet;
-            workingSetSize = _workingSet.Count;
-            restartAfterBackWhenWSIsBelow = _restartAfterBackWhenWSIsBelow;
+            this.dHelper = dHelper;
+            this.ClearSegment = ClearSegment;
+            this.SetSegmentColor = SetSegmentColor;
+            this.AddSegment = AddSegment;
+            this.GetSegmentList = GetSegmentList;
+            this.GetChildrenOfSegment = GetChildrenOfSegment;
+            this.ChangeParentOfChildren = ChangeParentOfChildren;
+            this.IsBackableSegment = IsBackableSegment;
+            this.restartAfterBackWhenWSIsBelow = restartAfterBackWhenWSIsBelow;
         }
 
-        public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ) {
+        public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int wsCount) {
             var backedOutSegment = segment;
-            var segmentChildren = dHelper.GetChildrenOfSegment(segment, segmentList);
-            if (isBackableSegment(segment, segmentChildren)) {
-                dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
+            //var segmentChildren = GetChildrenOfSegment(segment);
+            if (IsBackableSegment(segment)) {
+                //dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
                 //ClearSegment(segment);
                 SetSegmentColor(segment, "grey");
-                backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z);
+                Debug.Log("Backout removing/greying segment (" + segment.X + ", " + segment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(segment));
+                backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z, wsCount);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (exitX == 0 && exitZ == 0) {
                     Debug.Log("Uh oh -> BackoutSegment exitX & exitZ is 0 in the nonBackable RedoSegmentWithOneLessExit segment...");
                 }
-                if (workingSetSize >= restartAfterBackWhenWSIsBelow) {
+                if (wsCount >= restartAfterBackWhenWSIsBelow) {
                     try {
                         var newSegment = RedoSegmentWithOneLessExit(
                             segment, 
                             (exitX, exitZ)
                         );
+                        Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(segment));
+                        Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
                         ClearSegment(segment);
                         AddSegment(newSegment, false, "blue");
-                        dHelper.AddNewParentToChildren(newSegment, segmentChildren);
+                        //dHelper.AddNewParentToChildren(newSegment, segmentChildren);
+                        ChangeParentOfChildren(newSegment, segment);
                     } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
                         Debug.Log("RedoSegmentException message: " + rsex.Message);
                         var segmentExits = segment.Exits;
@@ -68,7 +77,7 @@ namespace Dunegon {
                         }
                         Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
                         var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                        var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, workingSetSize, backedOutSegment, true);
+                        var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, wsCount, backedOutSegment, true);
                         AddSegment(stopSegment, true, "cyan");
                     }
                 }
@@ -76,20 +85,28 @@ namespace Dunegon {
             return backedOutSegment;
         }
 
-        private bool isBackableSegment(Segment.Segment segment, List<Segment.Segment> segmentChildren) {
+        //rum -> false
+        //exits == 1 el mindre -> true
+        //join? -> false
+        //children > 0 -> false
+        //else -> true
+
+        private bool isBackableSegment2(Segment.Segment segment) {
             //var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck, SegmentType.Join};
             //if (!backableSegmentsArray.Contains(segment.Type)) return false;
+            var segmentsAtXZ = GetSegmentList().FindAll(compSeg => (compSeg.X == segment.X) && (compSeg.Z == segment.Z));
+            Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " segmet children count: " + GetChildrenOfSegment(segment).Count + " segments found at (X, Z) in segmentList: " + segmentsAtXZ.Count + " ref: " + RuntimeHelpers.GetHashCode(segment));
             if (segment is Room) return false;
             if (segment.Exits.Count <= 1) {
                 Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") exitCount <= 1: " + segment.Exits.Count + " returning true");
                 return true;
             }
-            if (segmentChildren.Count < 1) {
-                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") segmentChildren: " + segmentChildren.Count + " returning true..");
+            if (GetChildrenOfSegment(segment).Count < 1 && !segment.Join) {
+                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") segmentChildren: " + GetChildrenOfSegment(segment).Count + " returning true..");
                 return true;
             }
-            if (!segmentList.Exists(s => s.Parent == segment)) {
-                Debug.Log("isBackable segment - segment (" + segment.X + ", " + segment.Z + ") with several exits is parent of none... backout! segment type: " + segment.Type);
+            if (!GetSegmentList().Exists(s => s.Parent == segment) && !segment.Join) {
+                Debug.Log("isBackable segment (does this ever happend???) - segment (" + segment.X + ", " + segment.Z + ") with several exits is parent of none... backout! segment type: " + segment.Type);
                 return true;
             }
             Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + " Segment is not backable!");

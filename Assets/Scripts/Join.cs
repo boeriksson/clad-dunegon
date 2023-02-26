@@ -5,29 +5,36 @@ using Segment;
 using System.Linq;
 using GlobalDirection = Direction.GlobalDirection;
 using LocalDirection = Direction.LocalDirection;
+using DirectionConversion = Direction.DirectionConversion;
 using Debug = UnityEngine.Debug;
-using LevelMap = level.LevelMap;
+using RuntimeHelpers = System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace Dunegon {
     public class Join {
         private DunegonHelper dHelper = new DunegonHelper();
-        private List<Segment.Segment> segmentList;
-        private LevelMap levelMap;
+        private Func<List<Segment.Segment>> GetSegmentList;
+
+        private Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment;
         private JoinSegment joinSegment;
-        private List<(SegmentExit, Segment.Segment)> workingSet;
+        private Func<(int, int), int> GetLevelMapValueAtCoordinate;
+        private Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren;
 
         public Join(
             JoinSegment _joinSegment, 
             Action<Segment.Segment, bool, string> AddSegment, 
-            Action<Segment.Segment> ClearSegment,  
-            List<Segment.Segment> _segmentList, 
-            LevelMap _levelMap,
-            List<(SegmentExit, Segment.Segment)> workingSet
+            Action<Segment.Segment> ClearSegment,
+            Action<Segment.Segment, Segment.Segment> ReplaceJoiningSegmentWithNewSegmentInWorkingSet,  
+            Func<(int, int), int> GetLevelMapValueAtCoordinate,
+            Func<List<Segment.Segment>> GetSegmentList,
+            Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
+            Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren
         ) {
             joinSegment = _joinSegment;
+            this.GetLevelMapValueAtCoordinate = GetLevelMapValueAtCoordinate;
             Debug.Log("Start join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
-            segmentList = _segmentList;
-            levelMap = _levelMap;
+            this.GetSegmentList = GetSegmentList;
+            this.GetChildrenOfSegment = GetChildrenOfSegment;
+            this.ChangeParentOfChildren = ChangeParentOfChildren;
 
             (List<Segment.Segment> addOnSegments, (int, int) exitCoord, (int, int) joinCoord) = GetJoinAddOnSegments();
             Debug.Log("AddonSegments: " + addOnSegments.Count + " exitCoord: " + exitCoord.ToString() + " joinCoord: " + joinCoord.ToString());
@@ -41,15 +48,17 @@ namespace Dunegon {
                 AddSegment(addSegment, false, "yellow");
             }
             try {
-                dHelper.RemoveDanglingWorkingTreads(workingSet, joiningSegment);
+                Debug.Log("Before ReplaceJoiningSegmentWithPlusExitSegment");
                 ReplaceJoiningSegmentWithPlusExitSegment(
                     joiningSegment, 
                     joinSegment, 
                     exitCoord, 
                     AddSegment, 
-                    ClearSegment
+                    ClearSegment,
+                    ReplaceJoiningSegmentWithNewSegmentInWorkingSet
                 ); 
             } catch (JoinException ex) {
+                Debug.Log("JoinException...");
                 foreach (Segment.Segment addSegment in joinSegment.GetAddOnSegments()) {
                     ClearSegment(addSegment);
                 }
@@ -59,13 +68,23 @@ namespace Dunegon {
         }
 
         private (List<Segment.Segment>, (int, int), (int, int)) GetJoinAddOnSegments() {
-            joinSegment.JoinCoord = GetJoinCoord(joinSegment.X, joinSegment.Z, joinSegment.KrockCoords);
-            Debug.Log("JoinCoord: " + joinSegment.JoinCoord);
+            joinSegment.JoinCoord = GetJoinCoord();
             return FindPath();
         }
 
-        private (int, int) GetJoinCoord(int x, int z, List<(int, int)> krockCoordList) {
-            var orderedKrockCoordList = krockCoordList.OrderBy(coord => GetDistanceCompBetweenCoords(coord, (x, z))).ToList();
+        private (int, int) GetJoinCoord() {
+            var krockCoordList = joinSegment.KrockCoords;
+            Debug.Log("GetJoinCoord joinSegment: (" + joinSegment.X + ", " + joinSegment.Z + ")");
+            if (GetLevelMapValueAtCoordinate((joinSegment.X, joinSegment.Z)) == 1) {
+                Debug.Log("GetJoinCoord adding joinSegment coordinates to krocklist levelMap at (" + joinSegment.X + ", " + joinSegment.Z + "): " + GetLevelMapValueAtCoordinate((joinSegment.X, joinSegment.Z)));
+                krockCoordList.Add((joinSegment.X, joinSegment.Z));
+            }
+            var xplus1Coord = DirectionConversion.GetGlobalCoordinateFromLocal((1, 0), joinSegment.X, joinSegment.Z, joinSegment.GlobalDirection);
+            if (GetLevelMapValueAtCoordinate(xplus1Coord) == 1) {
+                Debug.Log("GetJoinCoord adding joinSegment + 1 coordinates to krocklist: " + xplus1Coord);
+                krockCoordList.Add(xplus1Coord);
+            }
+            var orderedKrockCoordList = krockCoordList.OrderBy(coord => GetDistanceCompBetweenCoords(coord, (joinSegment.X, joinSegment.Z))).ToList();
             return orderedKrockCoordList[0];
         }
 
@@ -83,7 +102,7 @@ namespace Dunegon {
             (int, GlobalDirection) xSelection(int xc, int xj) => xc > xj ? (-1, GlobalDirection.South) : (1, GlobalDirection.North); 
             (int, GlobalDirection) zSelection(int zc, int zj) => zc > zj ? (-1, GlobalDirection.West) : (1, GlobalDirection.East); 
             bool exitCondition(int xc, int xcAdd, int zc, int zcAdd) => (xc + xcAdd) == xj && (zc + zcAdd) == zj;
-            bool isTiled(int x, int z) => levelMap.GetValueAtCoordinate((x, z)) == 1;
+            bool isTiled(int x, int z) => GetLevelMapValueAtCoordinate((x, z)) == 1;
             var xcAdd = 0;
             var zcAdd = 0;
             if (Math.Abs(xc - xj) >= Math.Abs(zc - zj)) { 
@@ -131,9 +150,9 @@ namespace Dunegon {
             (int xj, int zj) = joinSegment.JoinCoord;
             var ix = 0;
             var joinExit = joinSegment.Exits[0];
-            int xc = joinSegment.X;                                      //cursor
-            int zc = joinSegment.Z;                                      //
-            GlobalDirection cDirection = joinSegment.GlobalDirection; //
+            int xc = joinSegment.X;                                         //cursor
+            int zc = joinSegment.Z;                                         //
+            GlobalDirection cDirection = joinSegment.GlobalDirection;       //
 
             var prePath = new List<(int, int, GlobalDirection)>();
             Debug.Log("FindPath xc/zc: (" + xc + ", " + zc + ") xj/zj: (" + xj + ", " + zj + ")");
@@ -247,6 +266,7 @@ namespace Dunegon {
         }
 
         private Segment.Segment GetSegmentWithTile((int, int) tileCoord) {
+            var segmentList = GetSegmentList();
             foreach(Segment.Segment segment in segmentList) {
                 var tiles = segment.GetTiles();
                 if (tiles.Exists(tile => tile.Item1 == tileCoord.Item1 && tile.Item2 == tileCoord.Item2)) {
@@ -261,14 +281,20 @@ namespace Dunegon {
             JoinSegment joinSegment, 
             (int, int) exitCoord, 
             Action<Segment.Segment, bool, string> AddSegment, 
-            Action<Segment.Segment> ClearSegment
+            Action<Segment.Segment> ClearSegment,
+            Action<Segment.Segment, Segment.Segment> ReplaceJoiningSegmentWithNewSegmentInWorkingSet  
         ) {
             var localExitCoordinates = dHelper.GetLocalCooridnatesForSegment(joiningSegment, exitCoord);
-            var joiningSegmentChildren = dHelper.GetChildrenOfSegment(joiningSegment, segmentList);
             var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, joinSegment, localExitCoordinates);
+            Debug.Log("ReplaceJoiningSegmentWithPlusExitSegment joiningSegment ref: " + RuntimeHelpers.GetHashCode(joiningSegment));
+            Debug.Log("ReplaceJoiningSegmentWithPlusExitSegment newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
+            Debug.Log("newSegment type: " + newSegment.Type);
+            newSegment.Join = true;
+            ReplaceJoiningSegmentWithNewSegmentInWorkingSet(joiningSegment, newSegment);
+            ChangeParentOfChildren(joiningSegment, newSegment);
+            Debug.Log("ReplaceJoiningSegmentWithPlusExitSegment newSegment children: " + GetChildrenOfSegment(newSegment).Count);
             ClearSegment(joiningSegment);
             AddSegment(newSegment, false, "green");
-            dHelper.AddNewParentToChildren(newSegment, joiningSegmentChildren);
         }
 
         private Segment.Segment RedoSegmentWithAdditionalExit(Segment.Segment joiningSegment, JoinSegment joinSegment, (int x, int z) le) {
@@ -285,7 +311,7 @@ namespace Dunegon {
                 case SegmentType.Straight: {
                     if ((le.x == 0 && le.z == 1) || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Right)) {
                         return SegmentType.StraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
-                    } else if (le.x == 0 && le.z == -1|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
+                    } else if (le.x == 0 && le.z == -1 || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
                         return SegmentType.StraightLeft.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } else if (le.x == -1 && le.z == 0 && joiningSide == LocalDirection.Back) {
                         Debug.Log("This side really? from behind!");

@@ -50,6 +50,9 @@ namespace Direction {
                 }
             }
         }
+        public static (int, int) GetGlobalCoordinateFromLocal((int, int) localCoordinate, int startX, int startZ, GlobalDirection gDirection) {
+            return GetGlobalCoordinatesFromLocal(new List<(int, int)> {(localCoordinate.Item1, localCoordinate.Item2)}, startX, startZ, gDirection)[0];
+        }
         public static List<(int, int)> GetGlobalCoordinatesFromLocal(List<(int, int)> localCoordinates, int startX, int startZ, GlobalDirection gDirection) {
             var globalCoordinates = new List<(int, int)>();
             switch(gDirection) {

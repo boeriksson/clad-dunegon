@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using GlobalDirection = Direction.GlobalDirection;
 using LocalDirection = Direction.LocalDirection;
 using DirectionConversion = Direction.DirectionConversion;
@@ -223,11 +224,12 @@ namespace Segment {
 
         protected void AddRemoveExit(SegmentExit addRemoveExit) {
             var exitIndex = _exits.FindIndex(exit => exit.X == addRemoveExit.X && exit.Z == addRemoveExit.Z);
-            if (exitIndex > 0) {
+            if (exitIndex >= 0) {
                 Debug.Log("Room.AddRemoveExit exit exists - removing at (" + addRemoveExit.X + ", " + addRemoveExit.Z + ")" );
                 _exits.RemoveAt(exitIndex);
             } else {
-                Debug.Log("Room.AddRemoveExit exit not found, adding to _exits - removing at (" + addRemoveExit.X + ", " + addRemoveExit.Z + ")" );
+                var exitsCoordStr = String.Join(", ", _exits.Select(x => "("+ x.X +","+ x.Z +")")); 
+                Debug.Log("Room.AddRemoveExit exit not found, adding to _exits - adding at (" + addRemoveExit.X + ", " + addRemoveExit.Z + ") \n existing _exits: " + exitsCoordStr);
                 _exits.Add(addRemoveExit);
             }
         }
@@ -324,9 +326,11 @@ namespace Segment {
             _zLength = oldRoom.ZLength;
             _entry = oldRoom.Entry;
             _exits = oldRoom.Exits;
+            Debug.Log("RoomVariableSegment start exits: " + _exits.Count);
             AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
+            Debug.Log("RoomVariableSegment end exits: " + _exits.Count);
         }
 
         private string GetExitCoord(List<SegmentExit> segmentExits) {

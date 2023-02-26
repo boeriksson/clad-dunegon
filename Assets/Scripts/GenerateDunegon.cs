@@ -14,6 +14,7 @@ using LevelMap = level.LevelMap;
 using TMPro;
 
 using Debug = UnityEngine.Debug;
+using RuntimeHelpers = System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace Dunegon {
     public class GenerateDunegon : MonoBehaviour {
@@ -36,10 +37,15 @@ namespace Dunegon {
         private LevelMap levelMap = new LevelMap();
         private List<GameObject> marks = new List<GameObject>();
         private List<GameObject> exitList = new List<GameObject>();
+
+        private GameObject mapDisplay;
+        private bool showMap = false;
+
         //Logger logger = new Logger("./Logs/dunegon.log");
 
         // Start is called before the first frame update
         void Start() {
+            mapDisplay = new GameObject(); 
             environmentMgr = FindObjectOfType<EnvironmentMgr>();
             workingSet.Add((new SegmentExit(0, 0, Direction.GlobalDirection.North, 0, 0, Direction.LocalDirection.Straight), null));
         }
@@ -48,6 +54,8 @@ namespace Dunegon {
             if (Input.GetKeyDown(KeyCode.Space)) {
                 if (currentSegment < noOfSegments && workingSet.Count > 0) {
                     StartCoroutine(AddWorkingSet());
+                } else {
+                    Debug.Log("CurrentSegment: " + currentSegment + " workingSet.Count: " + workingSet.Count);
                 }
             }
             if (Input.GetKeyDown(KeyCode.M)) {
@@ -106,14 +114,17 @@ namespace Dunegon {
             RemoveOldMarksAndExits();
 
             List<(SegmentExit, Segment.Segment)> nextWorkingSet = new List<(SegmentExit, Segment.Segment)>();
-            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
+            //foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
+            var workingSetCount = workingSet.Count;
+            for (int i = workingSetCount -1; i >= 0; i--) {
+                var wsEntry = workingSet[i];
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
                 Segment.Segment segment = dHelper.DecideNextSegment(
                     segmentStart.X,
                     segmentStart.Z,
                     segmentStart.Direction,
-                    levelMap,
+                    levelMap.GetValueAtCoordinate,
                     workingSet.Count,
                     parentSegment
                 );
@@ -125,9 +136,11 @@ namespace Dunegon {
                                 (JoinSegment)segment, 
                                 AddSegment, 
                                 ClearSegment,
-                                segmentList, 
-                                levelMap,
-                                workingSet
+                                ReplaceJoiningSegmentWithNewSegmentInWorkingSet,
+                                levelMap.GetValueAtCoordinate,
+                                GetSegmentList, 
+                                GetChildrenOfSegment,
+                                ChangeParentOfChildren
                             );
                         } catch (JoinException ex) {
                             Debug.Log("JoinException - backing out - message: " + ex.Message);
@@ -136,13 +149,16 @@ namespace Dunegon {
                                 ClearSegment, 
                                 SetSegmentColor,
                                 AddSegment,
-                                segmentList, 
-                                workingSet, 
+                                GetSegmentList, 
+                                GetChildrenOfSegment, 
+                                ChangeParentOfChildren,
+                                IsBackableSegment,
                                 restartAfterBackWhenWSIsBelow
                             );
-                            backout.BackoutDeadEnd(segment, 0, 0);
+                            backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
                         }
                     } else {
+                        Debug.Log("Main loop, adding segment at (" + segment.X + ", " + segment.Z + ") ref: " + RuntimeHelpers.GetHashCode(segment) + " value at coord in levelMap: " + levelMap.GetValueAtCoordinate((segment.X, segment.Z)));
                         AddSegment(segment);
                         var addOnSegments = segment.GetAddOnSegments();
                         if (addOnSegments.Count > 0) {
@@ -156,28 +172,35 @@ namespace Dunegon {
                     }
                     currentSegment++;
                 } else {
-                    var workingSetSize = workingSet.Count;
                     Debug.Log("Starting BackoutDeadEnd segment: (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " ------------------------------------------");
                     var backout = new Backout(
                         dHelper,
                         ClearSegment, 
                         SetSegmentColor,
                         AddSegment,
-                        segmentList, 
-                        workingSet, 
+                        GetSegmentList, 
+                        GetChildrenOfSegment, 
+                        ChangeParentOfChildren,
+                        IsBackableSegment,
                         restartAfterBackWhenWSIsBelow
                     );
-                    var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0);
+                    var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
                     Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: (" + backedOutSegment.X + ", " + backedOutSegment.Z + ") " + backedOutSegment.Type + " ----------------------------------------");
-                    if (workingSetSize < restartAfterBackWhenWSIsBelow) {
+                    //Debug.Log(" workingSet.Count: " + workingSet.Count + " nextWorkingSet.Count: " + nextWorkingSet.Count);
+                    if (workingSet.Count < restartAfterBackWhenWSIsBelow) {
                         nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
                     }
                 }
             }
             levelMap.ClearContent(8);
+            //Debug.Log("Outer main loop workingSet.Count: " + workingSet.Count + " nextWorkingSet.Count: " + nextWorkingSet.Count);
             workingSet.Clear();
             workingSet.AddRange(nextWorkingSet);
             yield return null;
+        }
+
+        private List<Segment.Segment> GetSegmentList() {
+            return segmentList;
         }
         private void AddSegment(Segment.Segment segment) {
             AddSegment(segment, true);
@@ -232,6 +255,8 @@ namespace Dunegon {
             foreach(GameObject iGSegment in iGSegments) {
                 iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
             }
+            levelMap.RemoveCoordinates(segment.GetTiles());
+            segmentList.Remove(segment);
         }
 
         private void RemoveOldMarksAndExits() {
@@ -281,7 +306,16 @@ namespace Dunegon {
                     debugTextComp.SetText("(" + gSegment.Item1 + "," + gSegment.Item2 + ")");
                     debugTextComp.color = new Color32(255, 99, 71, 255);
                     debugText.transform.Rotate(90f, 90f, 0f, Space.Self);
-                    debugText.transform.SetParent(environmentMgr.transform);
+                    debugText.transform.SetParent(iGSegment.transform);
+
+                    TMP_Text debugRefText = Instantiate(environmentMgr.debugText, new Vector3((gSegment.Item1 * scale) - 0.5f, -0.98f, gSegment.Item2 * scale), Quaternion.identity);
+                    var debugRefTextComp = debugRefText.GetComponent<TextMeshPro>();
+                    debugRefTextComp.fontSize = 12;
+                    debugRefTextComp.SetText("" + RuntimeHelpers.GetHashCode(segment));
+                    debugRefTextComp.color = new Color32(20, 20, 20, 255);
+                    debugRefText.transform.Rotate(90f, 90f, 0f, Space.Self);
+                    debugRefText.transform.SetParent(iGSegment.transform);
+
                     instantiatedGSegments.Add(iGSegment);
                 }
                 segment.Instantiated = instantiatedGSegments;
@@ -314,7 +348,7 @@ namespace Dunegon {
 
         private void ClearSegment(Segment.Segment segment) {
             var instantiatedTiles = segment.Instantiated;
-            Debug.Log("ClearSegment - Destroying " + instantiatedTiles.Count + " tiles from " + segment.Type);
+            Debug.Log("ClearSegment - Destroying " + instantiatedTiles.Count + " tiles from " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
             foreach (GameObject tile in instantiatedTiles) {
                 Destroy(tile);
             }
@@ -323,17 +357,82 @@ namespace Dunegon {
         }
 
         IEnumerator ShowMap() {
-            var map = levelMap.Map;
-            for (int x = 0; x < map.GetLength(0); x++) {
-                for (int z = 0; z < map.GetLength(1); z++) {
-                    if (map[x, z] != 0) {
-                        GameObject mapObj = Instantiate(mapper, new Vector3((x - (map.GetLength(0)/2)) * scale, 0, (z - (map.GetLength(1)/2))) * scale, Quaternion.identity) as GameObject;
-                        mapObj.transform.localScale = new Vector3(scale, 0.3f, scale);
-                        mapObj.transform.SetParent(environmentMgr.transform);
+            if (showMap) {
+                showMap = false;
+                for (int i = 0; i < mapDisplay.transform.childCount; i++) {
+                    Destroy(mapDisplay.transform.GetChild(i).gameObject);
+                }
+            } else {
+                showMap = true;
+                var map = levelMap.Map;
+                for (int x = 0; x < map.GetLength(0); x++) {
+                    for (int z = 0; z < map.GetLength(1); z++) {
+                        if (map[x, z] == 1) {
+                            var xPos = (x - map.GetLength(0)/2) * scale;
+                            var zPos = (z - map.GetLength(1)/2) * scale;
+                            GameObject mapObj = Instantiate(
+                                mapper, 
+                                new Vector3(xPos, 0, zPos), 
+                                Quaternion.identity
+                            ) as GameObject;
+
+                            mapObj.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                            mapObj.transform.SetParent(mapDisplay.transform);
+                        }
                     }
                 }
             }
             yield return null;
+        }
+        public void ReplaceJoiningSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
+            Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count);
+            for (int i = 0; i < workingSet.Count; i++) {
+                if (workingSet[i].Item2 == oldSegment) {
+                    Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet changing joiningSegment with newSegment in workingSet... exit: (" + workingSet[i].Item1.X + "," + workingSet[i].Item1.Z + ")");
+                    workingSet[i] = (workingSet[i].Item1, newSegment);
+                }
+            }
+            Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count);
+        }
+
+        public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment) {
+            var resultList = new List<Segment.Segment>();
+            foreach(Segment.Segment segment in segmentList) {
+                if (System.Object.ReferenceEquals(segment.Parent, parentSegment)) {
+                    resultList.Add(segment);
+                }
+            }
+            return resultList;
+        }
+
+        private void ChangeParentOfChildren(Segment.Segment oldParentSegment, Segment.Segment newParentSegment) {
+            var children = GetChildrenOfSegment(oldParentSegment);
+            Debug.Log("ChangeParentOfChildren children of oldParentSegment: " + children.Count);
+            foreach(Segment.Segment segment in children) {
+                segment.Parent = newParentSegment;
+            }
+        }
+
+        private bool IsBackableSegment(Segment.Segment segment) {
+            List<Segment.Segment> segmentsAtCoordInList = segmentList.FindAll(seg => (seg.X == segment.X) && (seg.Z == segment.Z));
+            Debug.Log("isBackableSegment - segment with coord (" + segment.X + "," + segment.Z + ") not in segmentList. Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
+            if (segmentsAtCoordInList.Count > 1) {
+                throw new Exception("WOOAAHHH isBackableSegment, there are " + segmentsAtCoordInList.Count + " segments with coord (" + segment.X + "," + segment.Z + ") in segmentList...");
+            } else if (segment.Type != SegmentType.Stop && segmentsAtCoordInList.Count > 0) {
+                var listSegment = segmentsAtCoordInList[0]; 
+                var listSegmentRef = RuntimeHelpers.GetHashCode(listSegment); 
+                var segmentRef = RuntimeHelpers.GetHashCode(segment);
+                if (listSegmentRef != segmentRef) { 
+                    //OBS: in this case, change segement..
+                    Debug.Log("isBackableSegment refs of segment and segmet in segmentList do not match segmentRef: " + segmentRef + " listSegmentRef: " + listSegmentRef);
+                }
+            }
+            if (segment.Type == SegmentType.Stop) return true;
+            if (segment is Room) return false;
+            if (segment.Exits.Count <= 1) return true;
+            if (segment.Join) return false;
+            if (GetChildrenOfSegment(segment).Count < 1) return true;
+            return false;
         }
     }
 }

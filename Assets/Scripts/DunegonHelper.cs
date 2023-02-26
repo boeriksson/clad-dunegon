@@ -25,16 +25,24 @@ namespace Dunegon {
             this.randomGenerator = _randomGenerator;
         }
 
-        public Segment.Segment DecideNextSegment(int x, int z, GlobalDirection gDirection, LevelMap levelMap, int forks, Segment.Segment parent) {
+        public Segment.Segment DecideNextSegment(
+            int x, 
+            int z, GlobalDirection gDirection, 
+            Func<(int, int), int> GetLevelMapValueAtCoordinate, 
+            int forks, 
+            Segment.Segment parent
+        ) {
             var possibleSegments = new List<(SegmentType, int)>();
             int totalWeight = 0;
             List<(int, int)> krockCoords = new List<(int, int)>();
+            var debugStr = "";
 
             foreach (SegmentType segmentType in Enum.GetValues(typeof(SegmentType))) {
                 Segment.Segment segment = segmentType.GetSegmentByType(x, z, gDirection, forks, null);
                 var localSpaceNeeded = segment.NeededSpace();
                 var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(localSpaceNeeded, x, z, gDirection);
-                (bool unJoinableKrock, List<(int, int)> globalJoinableKrockCoord) = checkIfSpaceIsAvailiable(globalSpaceNeeded, levelMap, segmentType);
+                (bool unJoinableKrock, List<(int, int)> globalJoinableKrockCoord) = checkIfSpaceIsAvailiable(globalSpaceNeeded, GetLevelMapValueAtCoordinate, segmentType);
+                debugStr += "\nDecideNextSegment Type: " + segment.Type + " segment direction " + segment.GlobalDirection + " unJoinableKrock: " + unJoinableKrock + " globalJoinableKrockCoord.Count: " + globalJoinableKrockCoord.Count;
                 if (!unJoinableKrock) {
                     if (globalJoinableKrockCoord.Count > 0) {
                         krockCoords.AddRange(globalJoinableKrockCoord);
@@ -42,14 +50,14 @@ namespace Dunegon {
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
                     } else {
-                        int straigthParentChain = GetStraightParentChain(parent);
-                        int segmentWeight = segmentType.GetSegmentTypeWeight(forks, straigthParentChain);
+                        int straightParentChain = GetStraightParentChain(parent);
+                        int segmentWeight = segmentType.GetSegmentTypeWeight(forks, straightParentChain);
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (segmentType, segmentWeight));
                     }
                 } 
             }
-
+            debugStr += "\npossibleSegments.Count: " + possibleSegments.Count;
             int ran = randomGenerator.Generate(totalWeight);
             int collectWeight = 0;
             //logger.WriteLine("DecideOnNextSegment possibleSegments Count: " + possibleSegments.Count + " possibleSegments: " + logger.PrintPossibleSegments(possibleSegments) + " ran: " + ran + " totalWeight: " + totalWeight);
@@ -59,7 +67,6 @@ namespace Dunegon {
                 if (collectWeight >= ran) {
                     var segment = segmentType.GetSegmentByType(x, z, gDirection, forks, parent, true);
                     if (segment is JoinSegment) {
-                        Debug.Log("JoinSegment krock: (" + segment.X + ", " + segment.Z + ")");
                         ((JoinSegment)segment).KrockCoords = krockCoords;
                         return segment;
                     }
@@ -67,6 +74,7 @@ namespace Dunegon {
                 }
             }
             Debug.Log("STOPSEGMENT!!! -> (" + x + ", " + z + ") GlobalDirection: " + gDirection + " parent: " + parent.Type);
+            Debug.Log(debugStr);
             return new StopSegment(x, z, gDirection, parent);
         }
 
@@ -78,13 +86,18 @@ namespace Dunegon {
             return GetStraightParentChain(segment.Parent, ix++);
         }
 
-        public (bool, List<(int, int)>) checkIfSpaceIsAvailiable(List<(int, int)> globalSpaceNeeded, LevelMap levelMap, SegmentType segmentType) {
+        public (bool, List<(int, int)>) checkIfSpaceIsAvailiable(
+            List<(int, int)> globalSpaceNeeded, 
+            Func<(int, int), int> GetLevelMapValueAtCoordinate, 
+            SegmentType segmentType
+        ) {
             var globalJoinableKrockCoord = new List<(int, int)>();
             foreach((int, int) space in globalSpaceNeeded) {
-                if (levelMap.GetValueAtCoordinate(space) != 0) {
-                    if (segmentType == SegmentType.Straight  && levelMap.GetValueAtCoordinate(space) == 1) {
+                if (GetLevelMapValueAtCoordinate(space) != 0) {
+                    if (segmentType == SegmentType.Straight  && GetLevelMapValueAtCoordinate(space) == 1) {
                         globalJoinableKrockCoord.Add(space);
                     } else {
+                        //Debug.Log("checkIfSpaceIsAvailiable " + segmentType + " coord: (" + space.Item1 + ", " + space.Item2 + ")  valueAtCoord: " + GetLevelMapValueAtCoordinate(space));
                         return (true, new List<(int, int)>());
                     }
                 }
@@ -110,16 +123,6 @@ namespace Dunegon {
             throw new Exception("Segment.Globaldirection not reqognized..");
         }
 
-        public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment, List<Segment.Segment> segmentList) {
-            var resultList = new List<Segment.Segment>();
-            foreach(Segment.Segment segment in segmentList) {
-                if (System.Object.ReferenceEquals(segment.Parent, parentSegment)) {
-                    resultList.Add(segment);
-                }
-            }
-            return resultList;
-        }
-
         public void AddNewParentToChildren(Segment.Segment parent, List<Segment.Segment> segmentChildren) {
             foreach(Segment.Segment segment in segmentChildren) {
                 segment.Parent = parent;
@@ -135,14 +138,8 @@ namespace Dunegon {
         }
 
         public void RemoveDanglingWorkingTreads(List<(SegmentExit, Segment.Segment)> workingSet, Segment.Segment segment) {
-            //workingSet.RemoveAll(workItem => workItem.Item2 == joiningSegment);
-            for (int i = workingSet.Count - 1; i >= 0; i--) {
-                if (workingSet[i].Item2 == segment) {
-                    var wsExit = workingSet[i].Item1;
-                    Debug.Log("Backout RemoveDanglingWorkingTreads found workItem with exit: (" + wsExit.X + ", " + wsExit.Z + ")");
-                    workingSet.RemoveAt(i);
-                }
-            }
+            workingSet.RemoveAll(workItem => workItem.Item2 == segment);
         }
+
     }
 }
