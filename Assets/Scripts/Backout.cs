@@ -85,34 +85,6 @@ namespace Dunegon {
             return backedOutSegment;
         }
 
-        //rum -> false
-        //exits == 1 el mindre -> true
-        //join? -> false
-        //children > 0 -> false
-        //else -> true
-
-        private bool isBackableSegment2(Segment.Segment segment) {
-            //var backableSegmentsArray = new SegmentType[] {SegmentType.Straight, SegmentType.Left, SegmentType.Right, SegmentType.Stop, SegmentType.LeftRight, SegmentType.LeftStraightRight, SegmentType.StraightNoCheck, SegmentType.Join};
-            //if (!backableSegmentsArray.Contains(segment.Type)) return false;
-            var segmentsAtXZ = GetSegmentList().FindAll(compSeg => (compSeg.X == segment.X) && (compSeg.Z == segment.Z));
-            Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " segmet children count: " + GetChildrenOfSegment(segment).Count + " segments found at (X, Z) in segmentList: " + segmentsAtXZ.Count + " ref: " + RuntimeHelpers.GetHashCode(segment));
-            if (segment is Room) return false;
-            if (segment.Exits.Count <= 1) {
-                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") exitCount <= 1: " + segment.Exits.Count + " returning true");
-                return true;
-            }
-            if (GetChildrenOfSegment(segment).Count < 1 && !segment.Join) {
-                Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + ") segmentChildren: " + GetChildrenOfSegment(segment).Count + " returning true..");
-                return true;
-            }
-            if (!GetSegmentList().Exists(s => s.Parent == segment) && !segment.Join) {
-                Debug.Log("isBackable segment (does this ever happend???) - segment (" + segment.X + ", " + segment.Z + ") with several exits is parent of none... backout! segment type: " + segment.Type);
-                return true;
-            }
-            Debug.Log("isBackableSegment (" + segment.X + ", " + segment.Z + " Segment is not backable!");
-            return false;
-        }
-
         public Segment.Segment RedoSegmentWithOneLessExit(
                 Segment.Segment redoSegment, 
                 (int x, int z) exit

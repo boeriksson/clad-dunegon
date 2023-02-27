@@ -51,14 +51,13 @@ namespace Dunegon {
                 Debug.Log("Before ReplaceJoiningSegmentWithPlusExitSegment");
                 ReplaceJoiningSegmentWithPlusExitSegment(
                     joiningSegment, 
-                    joinSegment, 
                     exitCoord, 
                     AddSegment, 
                     ClearSegment,
                     ReplaceJoiningSegmentWithNewSegmentInWorkingSet
                 ); 
             } catch (JoinException ex) {
-                Debug.Log("JoinException...");
+                Debug.Log("JoinException...ex: " + ex.Message);
                 foreach (Segment.Segment addSegment in joinSegment.GetAddOnSegments()) {
                     ClearSegment(addSegment);
                 }
@@ -277,8 +276,7 @@ namespace Dunegon {
         }
 
         private void ReplaceJoiningSegmentWithPlusExitSegment(
-            Segment.Segment joiningSegment, 
-            JoinSegment joinSegment, 
+            Segment.Segment joiningSegment,  
             (int, int) exitCoord, 
             Action<Segment.Segment, bool, string> AddSegment, 
             Action<Segment.Segment> ClearSegment,

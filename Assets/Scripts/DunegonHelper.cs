@@ -46,7 +46,7 @@ namespace Dunegon {
                 if (!unJoinableKrock) {
                     if (globalJoinableKrockCoord.Count > 0) {
                         krockCoords.AddRange(globalJoinableKrockCoord);
-                        int segmentWeight = 100;
+                        int segmentWeight = 1000;
                         totalWeight += segmentWeight;
                         possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
                     } else {

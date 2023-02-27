@@ -163,6 +163,7 @@ namespace Dunegon {
                         var addOnSegments = segment.GetAddOnSegments();
                         if (addOnSegments.Count > 0) {
                             foreach(Segment.Segment addSegment in addOnSegments) {
+                                Debug.Log("Adding normal addSegment at (" + addSegment.X + ", " + addSegment.Z + ")");
                                 AddSegment(addSegment);    
                                 AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
                             }
@@ -210,6 +211,9 @@ namespace Dunegon {
             var tiles = segment.GetTiles();
             var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(segment.NeededSpace(), segment.X, segment.Z, segment.GlobalDirection);
             levelMap.AddCooridnates(globalSpaceNeeded, 8);
+            if (strColor.Equals("yellow")) {
+                Debug.Log("AddSegment - adding join addonSegment (" + segment.X + ", " + segment.Z + ") to levelMap " + segment.GetTiles()[0]);
+            }
             levelMap.AddCooridnates(tiles, 1);
             if (scan) {
                 InstantiateExits(segment);
@@ -220,7 +224,7 @@ namespace Dunegon {
             segmentList.Add(segment);
         }
 
-        private Color GetColorByStr(string strColor) {
+        private static Color GetColorByStr(string strColor) {
             switch (strColor) {
                 case "red": {
                     return Color.red;
@@ -385,14 +389,14 @@ namespace Dunegon {
             yield return null;
         }
         public void ReplaceJoiningSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
-            Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count);
+            Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count + " oldSegmentRef: " + RuntimeHelpers.GetHashCode(oldSegment) + " newSegmentRef: " + RuntimeHelpers.GetHashCode(newSegment));
             for (int i = 0; i < workingSet.Count; i++) {
-                if (workingSet[i].Item2 == oldSegment) {
+                var wsSegment = workingSet[i].Item2;
+                if (wsSegment.X == oldSegment.X && wsSegment.Z == oldSegment.Z) {
                     Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet changing joiningSegment with newSegment in workingSet... exit: (" + workingSet[i].Item1.X + "," + workingSet[i].Item1.Z + ")");
                     workingSet[i] = (workingSet[i].Item1, newSegment);
                 }
             }
-            Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count);
         }
 
         public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment) {
@@ -415,7 +419,7 @@ namespace Dunegon {
 
         private bool IsBackableSegment(Segment.Segment segment) {
             List<Segment.Segment> segmentsAtCoordInList = segmentList.FindAll(seg => (seg.X == segment.X) && (seg.Z == segment.Z));
-            Debug.Log("isBackableSegment - segment with coord (" + segment.X + "," + segment.Z + ") not in segmentList. Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
+            Debug.Log("isBackableSegment - segment with coord (" + segment.X + "," + segment.Z + "). Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
             if (segmentsAtCoordInList.Count > 1) {
                 throw new Exception("WOOAAHHH isBackableSegment, there are " + segmentsAtCoordInList.Count + " segments with coord (" + segment.X + "," + segment.Z + ") in segmentList...");
             } else if (segment.Type != SegmentType.Stop && segmentsAtCoordInList.Count > 0) {
@@ -427,7 +431,14 @@ namespace Dunegon {
                     Debug.Log("isBackableSegment refs of segment and segmet in segmentList do not match segmentRef: " + segmentRef + " listSegmentRef: " + listSegmentRef);
                 }
             }
+            var wsEntriesWithSegment = 0;
+            foreach((SegmentExit, Segment.Segment) wsEntry in workingSet) {
+                if (wsEntry.Item2.X == segment.X && wsEntry.Item2.Z == segment.Z) {
+                    wsEntriesWithSegment ++;
+                }
+            }
             if (segment.Type == SegmentType.Stop) return true;
+            if (wsEntriesWithSegment > 1) return false;
             if (segment is Room) return false;
             if (segment.Exits.Count <= 1) return true;
             if (segment.Join) return false;
