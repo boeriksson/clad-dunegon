@@ -326,11 +326,9 @@ namespace Segment {
             _zLength = oldRoom.ZLength;
             _entry = oldRoom.Entry;
             _exits = oldRoom.Exits;
-            Debug.Log("RoomVariableSegment start exits: " + _exits.Count);
             AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
-            Debug.Log("RoomVariableSegment end exits: " + _exits.Count);
         }
 
         private string GetExitCoord(List<SegmentExit> segmentExits) {

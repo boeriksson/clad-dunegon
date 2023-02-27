@@ -29,6 +29,14 @@ namespace level {
             }
         }
 
+        private string getCoordStr(List<(int, int)> coordinates) {
+            var coordStr = "";
+            foreach ((int, int) coord in coordinates) {
+                coordStr += "(" + coord.Item1 + ", " + coord.Item2 + ") ,";
+            }
+            return coordStr;
+        }
+
         public void RemoveCoordinates(List<(int, int)> coordinates) {
             AddCooridnates(coordinates, 0);
         }
