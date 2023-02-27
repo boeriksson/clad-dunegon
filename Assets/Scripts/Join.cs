@@ -23,7 +23,7 @@ namespace Dunegon {
             JoinSegment _joinSegment, 
             Action<Segment.Segment, bool, string> AddSegment, 
             Action<Segment.Segment> ClearSegment,
-            Action<Segment.Segment, Segment.Segment> ReplaceJoiningSegmentWithNewSegmentInWorkingSet,  
+            Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet,  
             Func<(int, int), int> GetLevelMapValueAtCoordinate,
             Func<List<Segment.Segment>> GetSegmentList,
             Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
@@ -54,7 +54,7 @@ namespace Dunegon {
                     exitCoord, 
                     AddSegment, 
                     ClearSegment,
-                    ReplaceJoiningSegmentWithNewSegmentInWorkingSet
+                    ReplaceSegmentWithNewSegmentInWorkingSet
                 ); 
             } catch (JoinException ex) {
                 Debug.Log("JoinException...ex: " + ex.Message);

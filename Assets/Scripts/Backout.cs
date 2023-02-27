@@ -17,6 +17,7 @@ namespace Dunegon {
         private Func<List<Segment.Segment>> GetSegmentList;
         private Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment;
         private Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren;
+        private Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet;
         private Func<Segment.Segment, bool> IsBackableSegment;
         private Action<Segment.Segment, bool, string> AddSegment;  
         private DunegonHelper dHelper;
@@ -29,6 +30,7 @@ namespace Dunegon {
             Func<List<Segment.Segment>> GetSegmentList,
             Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
             Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren,
+            Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet,
             Func<Segment.Segment, bool> IsBackableSegment,
             int restartAfterBackWhenWSIsBelow
         ) {
@@ -38,6 +40,7 @@ namespace Dunegon {
             this.AddSegment = AddSegment;
             this.GetSegmentList = GetSegmentList;
             this.GetChildrenOfSegment = GetChildrenOfSegment;
+            this.ReplaceSegmentWithNewSegmentInWorkingSet = ReplaceSegmentWithNewSegmentInWorkingSet;
             this.ChangeParentOfChildren = ChangeParentOfChildren;
             this.IsBackableSegment = IsBackableSegment;
             this.restartAfterBackWhenWSIsBelow = restartAfterBackWhenWSIsBelow;
@@ -64,6 +67,7 @@ namespace Dunegon {
                         );
                         Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(segment));
                         Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
+                        ReplaceSegmentWithNewSegmentInWorkingSet(segment, newSegment);
                         ClearSegment(segment);
                         AddSegment(newSegment, false, "blue");
                         //dHelper.AddNewParentToChildren(newSegment, segmentChildren);

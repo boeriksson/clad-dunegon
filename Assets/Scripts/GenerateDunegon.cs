@@ -136,7 +136,7 @@ namespace Dunegon {
                                 (JoinSegment)segment, 
                                 AddSegment, 
                                 ClearSegment,
-                                ReplaceJoiningSegmentWithNewSegmentInWorkingSet,
+                                ReplaceSegmentWithNewSegmentInWorkingSet,
                                 levelMap.GetValueAtCoordinate,
                                 GetSegmentList, 
                                 GetChildrenOfSegment,
@@ -152,6 +152,7 @@ namespace Dunegon {
                                 GetSegmentList, 
                                 GetChildrenOfSegment, 
                                 ChangeParentOfChildren,
+                                ReplaceSegmentWithNewSegmentInWorkingSet,
                                 IsBackableSegment,
                                 restartAfterBackWhenWSIsBelow
                             );
@@ -182,6 +183,7 @@ namespace Dunegon {
                         GetSegmentList, 
                         GetChildrenOfSegment, 
                         ChangeParentOfChildren,
+                        ReplaceSegmentWithNewSegmentInWorkingSet,
                         IsBackableSegment,
                         restartAfterBackWhenWSIsBelow
                     );
@@ -388,7 +390,7 @@ namespace Dunegon {
             }
             yield return null;
         }
-        public void ReplaceJoiningSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
+        public void ReplaceSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
             Debug.Log("ReplaceJoiningSegmentWithNewSegmentInWorkingSet workingSet.Count: " + workingSet.Count + " oldSegmentRef: " + RuntimeHelpers.GetHashCode(oldSegment) + " newSegmentRef: " + RuntimeHelpers.GetHashCode(newSegment));
             for (int i = 0; i < workingSet.Count; i++) {
                 var wsSegment = workingSet[i].Item2;
