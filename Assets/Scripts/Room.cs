@@ -268,6 +268,21 @@ namespace Segment {
             
         }
     }
+    public class StartSegment : Room {
+        public StartSegment(int x, int z, GlobalDirection gDirection) : base(SegmentType.Start, x, z, gDirection, null) {
+            _exits = new List<SegmentExit>();
+            _exits.Add(new SegmentExit(x, z, gDirection, 3, 0, LocalDirection.Straight));
+            _tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1)}), x, z, gDirection), X, Z, gDirection);
+            _space = new List<(int, int)>();
+        }
+
+        public StartSegment(StartSegment oldRoom, SegmentExit addRemoveExit) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+            _exits = oldRoom.Exits;
+            AddRemoveExit(addRemoveExit);
+            _tiles = oldRoom.GetTiles();
+            _space = oldRoom.NeededSpace();
+        }
+    }
 
     public class Room3x4Segment : Room {
         public Room3x4Segment(int x, int z, GlobalDirection gDirection, int forks, Segment parent) : base(SegmentType.Room3x4, x, z, gDirection, parent) {

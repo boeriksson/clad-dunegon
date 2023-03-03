@@ -1,12 +1,13 @@
 /*
-    Remove the idea of JoinSegment! Replace with join map in Join and rework to allow for room-room openings
     Start must be "plugged"
     If dunegon ends when it's too small, new entrys should be added to working set! (if fork < 3 add 1 att appropriate ställe)
-    Rollbacks should replace original fork with exit -1, not end with deadends!
+    After hitting the indexOutOfBounds of the levelMap, corridors are backedout and exits are NOT plugged..
     Buggar: 
-        - Efter backout and removewithonelessexit, the old "tiles" are still there - 2 sets of tiles (room only?) - Happends when there are 1 or more backouts... 
-        - Ibland skrivs korridorer över? (bara backedOut and replaced??)
+        - Room that is joiningSegment (green) lack one exit? 
 
+    Done: 
+    -- Rollbacks should replace original fork with exit -1, not end with deadends!
+    -- Remove the idea of JoinSegment! Replace with join map in Join and rework to allow for room-room openings
     -- Check findpath for krocks..
     -- Set stuff as classProps in join
     -- Straight corridors in a row should lower chance of another straight..
@@ -15,6 +16,8 @@
     -- New JoinSegment - should add nessecary segments starting with a straight, to end at a predefined "join" coordinate. Coord before "join" is the new exit
     -- Rollbacked corridors should end with a deadend
     -- Buggar: 
+        - Ibland skrivs korridorer över? (bara backedOut and replaced??)
+        - Efter backout and removewithonelessexit, the old "tiles" are still there - 2 sets of tiles (room only?) - Happends when there are 1 or more backouts... 
         - Krock med annan scan backar ut ena parten, men den andra stannar halvfärdig
         - Backing out to a segment with 2 exits - need to check that there segments at the other exit, else continue backing out.. 
         - RedoSegmentWithOneLessExit segment not found... backing out of "joinsegment" 

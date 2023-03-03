@@ -157,6 +157,8 @@ namespace Segment {
         }
     }
     
+
+    
     /**
         Joinsegment is a non-instantiated segment initiating a chain of segments connecting to another "branch" of segments
         It acts as a value carrier for setting up the Join

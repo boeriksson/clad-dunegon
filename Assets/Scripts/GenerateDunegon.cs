@@ -34,7 +34,7 @@ namespace Dunegon {
 
         private List<(SegmentExit, Segment.Segment)> workingSet = new List<(SegmentExit, Segment.Segment)>();
         private List<Segment.Segment> segmentList = new List<Segment.Segment>();
-        private LevelMap levelMap = new LevelMap();
+        private LevelMap levelMap;
         private List<GameObject> marks = new List<GameObject>();
         private List<GameObject> exitList = new List<GameObject>();
 
@@ -45,6 +45,7 @@ namespace Dunegon {
 
         // Start is called before the first frame update
         void Start() {
+            levelMap = new LevelMap(defaultMapSize);
             mapDisplay = new GameObject(); 
             environmentMgr = FindObjectOfType<EnvironmentMgr>();
             workingSet.Add((new SegmentExit(0, 0, Direction.GlobalDirection.North, 0, 0, Direction.LocalDirection.Straight), null));
@@ -193,6 +194,11 @@ namespace Dunegon {
                         nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
                     }
                 }
+            }
+            if (nextWorkingSet.Count < 10) {
+                var newStartCoord = GetNewStartCoord();
+                Debug.Log("out of segments -> nextWorkingSet.Add newStartCoord: " + newStartCoord);
+                nextWorkingSet.Add((new SegmentExit(newStartCoord.Item1, newStartCoord.Item2, newStartCoord.Item3, 0, 0, Direction.LocalDirection.Straight), null));
             }
             levelMap.ClearContent(8);
             workingSet.Clear();
@@ -386,7 +392,7 @@ namespace Dunegon {
         public void ReplaceSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
             for (int i = 0; i < workingSet.Count; i++) {
                 var wsSegment = workingSet[i].Item2;
-                if (wsSegment.X == oldSegment.X && wsSegment.Z == oldSegment.Z) {
+                if (wsSegment != null && wsSegment.X == oldSegment.X && wsSegment.Z == oldSegment.Z) {
                     workingSet[i] = (workingSet[i].Item1, newSegment);
                 }
             }
@@ -421,7 +427,7 @@ namespace Dunegon {
             }
             var wsEntriesWithSegment = 0;
             foreach((SegmentExit, Segment.Segment) wsEntry in workingSet) {
-                if (wsEntry.Item2.X == segment.X && wsEntry.Item2.Z == segment.Z) {
+                if (wsEntry.Item2 != null && wsEntry.Item2.X == segment.X && wsEntry.Item2.Z == segment.Z) {
                     wsEntriesWithSegment ++;
                 }
             }
@@ -432,6 +438,51 @@ namespace Dunegon {
             if (segment.Join) return false;
             if (GetChildrenOfSegment(segment).Count < 1) return true;
             return false;
+        }
+
+        private (int, int, GlobalDirection) GetNewStartCoord() {
+            (int maxX, int maxZ, int minX, int minZ) minMax = levelMap.GetMinMaxPopulated();
+            Debug.Log("maxX: " + minMax.maxX + " maxZ: " + minMax.maxZ + " minX: " + minMax.minX + " minZ: " + minMax.minZ);
+            Dictionary<string, int> sides = new Dictionary<string, int>();
+            sides.Add("zMin", levelMap.MapSize/2 - Math.Abs(minMax.minZ));
+            sides.Add("xMin", levelMap.MapSize/2 - Math.Abs(minMax.minX));
+            sides.Add("xMax", levelMap.MapSize/2 - Math.Abs(minMax.maxX));
+            sides.Add("zMax", levelMap.MapSize/2 - Math.Abs(minMax.maxZ));
+
+            var side = sides.OrderByDescending(x => x.Value).First();
+            string maxKey = side.Key;
+            int maxValue = side.Value;
+            Debug.Log("maxKey: " + maxKey + " maxValue:  " + maxValue);
+            var distance = 10;
+            if (maxValue < 20) {
+                distance = maxValue/2;
+            }
+
+            var offSide = getStartRandomSideIx();
+
+            Debug.Log("distance: " + distance);
+            switch(maxKey) {
+                case "zMin": {
+                    return (offSide, minMax.minZ - distance, GlobalDirection.North);
+                }
+                case "xMin": {
+                    return (minMax.minX - distance, offSide, GlobalDirection.East);
+                }
+                case "zMax": {
+                    return (offSide, minMax.maxZ + distance, GlobalDirection.South);
+                }
+                case "xMax": {
+                    return (minMax.maxX + distance, offSide, GlobalDirection.West);
+                }
+                default: {
+                    throw new Exception("shoudn't happend..");
+                }
+            }
+        }
+        private int getStartRandomSideIx() {
+            var side = levelMap.MapSize/2;
+            var mutedSide = (side/3) * 2;
+            return UnityEngine.Random.Range(mutedSide * -1, mutedSide); 
         }
     }
 }

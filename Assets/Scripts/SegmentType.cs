@@ -5,6 +5,7 @@ using Debug = UnityEngine.Debug;
 namespace Segment {
     public enum SegmentType {
         Straight,
+        Start,
         Right,
         Left, 
         StraightRight,
@@ -57,6 +58,9 @@ namespace Segment {
             switch (segmentType) {
                 case SegmentType.Straight: {
                     return new StraightSegment(x, z, gDirection, parent);
+                }
+                case SegmentType.Start: {
+                    return new StartSegment(x, z, gDirection);
                 }
                 case SegmentType.StraightNoCheck: {
                     //return new StraightNoCheckSegment(x, z, gDirection, parent);
@@ -238,6 +242,9 @@ namespace Segment {
                     return (int)Math.Round(30 * forksConstant, 0);
                 }
                 case SegmentType.Join: {
+                    return 0;
+                }
+                case SegmentType.Start: {
                     return 0;
                 }
                 case SegmentType.StraightNoCheck: {

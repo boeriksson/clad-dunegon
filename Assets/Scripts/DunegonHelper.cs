@@ -37,6 +37,10 @@ namespace Dunegon {
             List<(int, int)> krockCoords = new List<(int, int)>();
             var debugStr = "";
 
+            if (parent == null) {
+                return SegmentType.Start.GetSegmentByType(x, z, gDirection, 0, null, true);
+            }
+
             foreach (SegmentType segmentType in Enum.GetValues(typeof(SegmentType))) {
                 Segment.Segment segment = segmentType.GetSegmentByType(x, z, gDirection, forks, null);
                 var localSpaceNeeded = segment.NeededSpace();
@@ -73,7 +77,7 @@ namespace Dunegon {
                     return segment; 
                 }
             }
-            Debug.Log("STOPSEGMENT!!! -> (" + x + ", " + z + ") GlobalDirection: " + gDirection + " parent: " + parent.Type);
+            Debug.Log("STOPSEGMENT!!! -> (" + x + ", " + z + ") GlobalDirection: " + gDirection + " parent: " + (parent != null ? parent.Type : "no parent!"));
             Debug.Log(debugStr);
             return new StopSegment(x, z, gDirection, parent);
         }

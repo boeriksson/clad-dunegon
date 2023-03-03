@@ -5,16 +5,17 @@ using System;
 
 namespace level {
     public class LevelMap {
-        private int defaultMapSize = 100;
         private int[,] map;
-        public LevelMap() {
-            map = new int[defaultMapSize, defaultMapSize];
+        private int mapSize;
+        public LevelMap(int mapSize) {
+            this.mapSize = mapSize;
+            map = new int[mapSize, mapSize];
         }
 
         public int GetValueAtCoordinate((int, int) coordinate) {
             try {
-                int mapX = coordinate.Item1 + defaultMapSize / 2;
-                int mapY = coordinate.Item2 + defaultMapSize /2;
+                int mapX = coordinate.Item1 + mapSize / 2;
+                int mapY = coordinate.Item2 + mapSize /2;
                 return map[mapX, mapY];
             } catch (IndexOutOfRangeException) {
                 return 9;
@@ -23,8 +24,8 @@ namespace level {
 
         public void AddCooridnates(List<(int, int)> coordinates, int content) {
             foreach ((int, int) coordinate in coordinates) {
-                int mapX = coordinate.Item1 + defaultMapSize / 2;
-                int mapY = coordinate.Item2 + defaultMapSize /2;
+                int mapX = coordinate.Item1 + mapSize / 2;
+                int mapY = coordinate.Item2 + mapSize /2;
                 map[mapX, mapY] = content;
             }
         }
@@ -58,7 +59,28 @@ namespace level {
                 return map;
             }
         }
+        public int MapSize {
+            get {
+                return mapSize;
+            }
+        }
 
+        public (int, int, int, int) GetMinMaxPopulated() {
+            var xBound0 = map.GetUpperBound(0);
+            var zBound1 = map.GetUpperBound(1);
+            int maxX = 0, maxZ = 0, minX = 0, minZ = 0;
+            for (int x = 0; x < xBound0; x++) {
+                for (int z = 0; z < zBound1; z++) {
+                    if (map[x, z] == 1) {
+                        if (x > maxX) maxX = x;
+                        if (x < minX || minX == 0) minX = x;
+                        if (z > maxZ) maxZ = z;
+                        if (z < minZ || minZ == 0) minZ = z;
+                    }
+                }
+            }
+            return (maxX - mapSize/2, maxZ - mapSize/2, minX - mapSize/2, minZ - mapSize/2); 
+        }
     }
 
 }
