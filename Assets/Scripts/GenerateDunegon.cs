@@ -195,7 +195,7 @@ namespace Dunegon {
                     }
                 }
             }
-            if (nextWorkingSet.Count < 10) {
+            if (nextWorkingSet.Count < 1) {
                 var newStartCoord = GetNewStartCoord();
                 Debug.Log("out of segments -> nextWorkingSet.Add newStartCoord: " + newStartCoord);
                 nextWorkingSet.Add((new SegmentExit(newStartCoord.Item1, newStartCoord.Item2, newStartCoord.Item3, 0, 0, Direction.LocalDirection.Straight), null));

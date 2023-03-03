@@ -271,7 +271,7 @@ namespace Segment {
     public class StartSegment : Room {
         public StartSegment(int x, int z, GlobalDirection gDirection) : base(SegmentType.Start, x, z, gDirection, null) {
             _exits = new List<SegmentExit>();
-            _exits.Add(new SegmentExit(x, z, gDirection, 3, 0, LocalDirection.Straight));
+            _exits.Add(new SegmentExit(x, z, gDirection, 2, 0, LocalDirection.Straight));
             _tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1)}), x, z, gDirection), X, Z, gDirection);
             _space = new List<(int, int)>();
         }
@@ -281,6 +281,31 @@ namespace Segment {
             AddRemoveExit(addRemoveExit);
             _tiles = oldRoom.GetTiles();
             _space = oldRoom.NeededSpace();
+        }
+
+        override public List<(int, int, GlobalDirection, float, GameObject)> GetGSegments(EnvironmentMgr environmentMgr) {
+            var gSegments = new List<(int, int, GlobalDirection, float, GameObject)>();
+            var rotation = 0.0f;
+            switch (_gDirection) {
+                case GlobalDirection.North: {
+                    rotation = 270.0f;
+                    break;
+                } 
+                case GlobalDirection.East: {
+                    rotation = 180.0f;
+                    break;
+                }
+                case GlobalDirection.South: {
+                    rotation = 90.0f;
+                    break;
+                }
+                case GlobalDirection.West: {
+                    rotation = 0.0f;
+                    break;
+                }
+            }
+            gSegments.Add((_entryX, _entryZ, _gDirection, rotation, environmentMgr.start));
+            return gSegments;
         }
     }
 
