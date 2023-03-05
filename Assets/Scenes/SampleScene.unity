@@ -269,6 +269,8 @@ MonoBehaviour:
   noOfSegments: 2000
   defaultMapSize: 100
   scale: 3
+  playerObj: {fileID: 2973634506543565155, guid: 1aeffe769b5a54db5ac410f0a869dd63, type: 3}
+  cameraHolderObj: {fileID: 2853368089636715810, guid: 0a8979be14e2844dbbc0d8ed99467a7c, type: 3}
   restartAfterBackWhenWSIsBelow: 2
 --- !u!114 &869206035
 MonoBehaviour:
@@ -322,7 +324,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_Enabled: 1
+  m_Enabled: 0
 --- !u!20 &963194227
 Camera:
   m_ObjectHideFlags: 0

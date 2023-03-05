@@ -26,6 +26,10 @@ namespace Dunegon {
         public int defaultMapSize;
         public int scale;
 
+        public GameObject playerObj;
+
+        public GameObject cameraHolderObj;
+
         public int restartAfterBackWhenWSIsBelow = 2; // This amount or less forks in the workingset and we restart fork after backout
         private int currentSegment = 0;
         private DunegonHelper dHelper = new DunegonHelper();
@@ -65,9 +69,27 @@ namespace Dunegon {
             if (Input.GetKeyDown(KeyCode.B)) {
                 StartCoroutine(BackupWorkingSet());
             }
+            /*
             if (Input.GetKeyDown(KeyCode.P)) {
                 StartCoroutine(PrintSegments());
             }
+            */
+            if (Input.GetKeyDown(KeyCode.P)) {
+                StartCoroutine(SpawnPlayer());
+            }
+        }
+
+        IEnumerator SpawnPlayer() {
+            GameObject player = Instantiate(playerObj, new Vector3(3, 20, 0), Quaternion.identity) as GameObject;
+            GameObject cameraHolder = Instantiate(cameraHolderObj, new Vector3(3, 20, 0), Quaternion.identity) as GameObject;
+            var cameraPos = GameObject.Find("CameraPos").transform;
+            cameraHolder.GetComponent<MoveCamera>().cameraPosition = cameraPos;
+            var orientation = GameObject.Find("Orientation").transform;
+            var playerCam = GameObject.Find("PlayerCam").transform;
+            playerCam.GetComponent<PlayerCamScript>().orientation = orientation;
+            player.GetComponent<PlayerMovement>().orientation = orientation;
+            
+            yield return null;
         }
 
         IEnumerator PrintSegments() {
