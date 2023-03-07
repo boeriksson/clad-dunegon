@@ -36,7 +36,7 @@ namespace Dunegon {
             this.GetChildrenOfSegment = GetChildrenOfSegment;
             this.ChangeParentOfChildren = ChangeParentOfChildren;
 
-            (List<Segment.Segment> addOnSegments, (int, int) exitCoord, (int, int) joinCoord) = GetJoinAddOnSegments();
+            (List<Segment.Segment> addOnSegments, (int, int) exitCoord, (int, int) joinCoord) = FindPath();
             Debug.Log("AddonSegments: " + addOnSegments.Count + " exitCoord: " + exitCoord.ToString() + " joinCoord: " + joinCoord.ToString());
             joinSegment.SetAddOnSegments(addOnSegments);
             joinSegment.JoinExitCoord = exitCoord;
@@ -64,33 +64,6 @@ namespace Dunegon {
                 throw new JoinException(ex.Message);
             }
             Debug.Log("End join joiningSegment at: (" + joinSegment.X + ", " + joinSegment.Z + ") ==========================================================================");
-        }
-
-        private (List<Segment.Segment>, (int, int), (int, int)) GetJoinAddOnSegments() {
-            joinSegment.JoinCoord = GetJoinCoord();
-            return FindPath();
-        }
-
-        private (int, int) GetJoinCoord() {
-            var krockCoordList = joinSegment.KrockCoords;
-            Debug.Log("GetJoinCoord joinSegment: (" + joinSegment.X + ", " + joinSegment.Z + ")");
-            if (GetLevelMapValueAtCoordinate((joinSegment.X, joinSegment.Z)) == 1) {
-                Debug.Log("GetJoinCoord adding joinSegment coordinates to krocklist levelMap at (" + joinSegment.X + ", " + joinSegment.Z + "): " + GetLevelMapValueAtCoordinate((joinSegment.X, joinSegment.Z)));
-                krockCoordList.Add((joinSegment.X, joinSegment.Z));
-            }
-            var xplus1Coord = DirectionConversion.GetGlobalCoordinateFromLocal((1, 0), joinSegment.X, joinSegment.Z, joinSegment.GlobalDirection);
-            if (GetLevelMapValueAtCoordinate(xplus1Coord) == 1) {
-                Debug.Log("GetJoinCoord adding joinSegment + 1 coordinates to krocklist: " + xplus1Coord);
-                krockCoordList.Add(xplus1Coord);
-            }
-            var orderedKrockCoordList = krockCoordList.OrderBy(coord => GetDistanceCompBetweenCoords(coord, (joinSegment.X, joinSegment.Z))).ToList();
-            return orderedKrockCoordList[0];
-        }
-
-        private float GetDistanceCompBetweenCoords((int, int) coord1, (int, int) coord2) {
-            (int x1, int z1) = coord1;
-            (int x2, int z2) = coord2;
-            return ((x1 - x2) * (x1 - x2) + (z1 - z2) * (z1 - z2)); 
         }
 
         public void GetPrePathRecursive(List<(int, int, GlobalDirection)> prePath, ref int xc, ref int zc, ref int ix, GlobalDirection cDirection, int xj, int zj) {
@@ -312,10 +285,13 @@ namespace Dunegon {
                     } else if (le.x == 0 && le.z == -1 || (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
                         return SegmentType.StraightLeft.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } else if (le.x == -1 && le.z == 0 && joiningSide == LocalDirection.Back) {
-                        Debug.Log("This side really? from behind!");
+                        Debug.Log("This side really? from behind!?");
                         return joiningSegment;
                     } else if (le.x == 1 && le.z == 0 && joiningSide == LocalDirection.Straight) {
-                        Debug.Log("This side really? headjob!");
+                        Debug.Log("This side really? head?!");
+                        return joiningSegment; 
+                    } else if (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Straight) {
+                        Debug.Log("This side really? ontop?!");
                         return joiningSegment; 
                     }
                     break;

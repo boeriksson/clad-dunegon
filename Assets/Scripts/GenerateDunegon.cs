@@ -176,8 +176,7 @@ namespace Dunegon {
                                 GetChildrenOfSegment, 
                                 ChangeParentOfChildren,
                                 ReplaceSegmentWithNewSegmentInWorkingSet,
-                                IsBackableSegment,
-                                restartAfterBackWhenWSIsBelow
+                                IsBackableSegment
                             );
                             backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
                         }
@@ -206,21 +205,24 @@ namespace Dunegon {
                         GetChildrenOfSegment, 
                         ChangeParentOfChildren,
                         ReplaceSegmentWithNewSegmentInWorkingSet,
-                        IsBackableSegment,
-                        restartAfterBackWhenWSIsBelow
+                        IsBackableSegment
                     );
                     var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
                     Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: (" + backedOutSegment.X + ", " + backedOutSegment.Z + ") " + backedOutSegment.Type + " ----------------------------------------");
                     //Debug.Log(" workingSet.Count: " + workingSet.Count + " nextWorkingSet.Count: " + nextWorkingSet.Count);
-                    if (workingSet.Count < restartAfterBackWhenWSIsBelow) {
-                        nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
-                    }
+                    //if (workingSet.Count < restartAfterBackWhenWSIsBelow) {
+                    //    nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
+                    //}
                 }
             }
             if (nextWorkingSet.Count < 1) {
-                var newStartCoord = GetNewStartCoord();
-                Debug.Log("out of segments -> nextWorkingSet.Add newStartCoord: " + newStartCoord);
-                nextWorkingSet.Add((new SegmentExit(newStartCoord.Item1, newStartCoord.Item2, newStartCoord.Item3, 0, 0, Direction.LocalDirection.Straight), null));
+                try {
+                    var newStartCoord = GetNewStartCoord();
+                    Debug.Log("out of segments -> nextWorkingSet.Add newStartCoord: " + newStartCoord);
+                    nextWorkingSet.Add((new SegmentExit(newStartCoord.Item1, newStartCoord.Item2, newStartCoord.Item3, 0, 0, Direction.LocalDirection.Straight), null));
+                } catch (GenerateDunegonException ex) {
+                    Debug.Log(ex.Message);
+                }
             }
             levelMap.ClearContent(8);
             workingSet.Clear();
@@ -476,7 +478,9 @@ namespace Dunegon {
             int maxValue = side.Value;
             Debug.Log("maxKey: " + maxKey + " maxValue:  " + maxValue);
             var distance = 10;
-            if (maxValue < 20) {
+            if (maxValue < 6) {
+                throw new GenerateDunegonException("Too little space left for new starting point...");
+            } else if (maxValue < 20) {
                 distance = maxValue/2;
             }
 
@@ -505,6 +509,10 @@ namespace Dunegon {
             var side = levelMap.MapSize/2;
             var mutedSide = (side/3) * 2;
             return UnityEngine.Random.Range(mutedSide * -1, mutedSide); 
+        }
+    }
+    public class GenerateDunegonException : Exception {
+        public GenerateDunegonException(string message) : base(message) {
         }
     }
 }

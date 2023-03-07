@@ -21,7 +21,6 @@ namespace Dunegon {
         private Func<Segment.Segment, bool> IsBackableSegment;
         private Action<Segment.Segment, bool, string> AddSegment;  
         private DunegonHelper dHelper;
-        private int restartAfterBackWhenWSIsBelow;
         public Backout(
             DunegonHelper dHelper, 
             Action<Segment.Segment> ClearSegment, 
@@ -31,8 +30,7 @@ namespace Dunegon {
             Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
             Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren,
             Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet,
-            Func<Segment.Segment, bool> IsBackableSegment,
-            int restartAfterBackWhenWSIsBelow
+            Func<Segment.Segment, bool> IsBackableSegment
         ) {
             this.dHelper = dHelper;
             this.ClearSegment = ClearSegment;
@@ -43,7 +41,6 @@ namespace Dunegon {
             this.ReplaceSegmentWithNewSegmentInWorkingSet = ReplaceSegmentWithNewSegmentInWorkingSet;
             this.ChangeParentOfChildren = ChangeParentOfChildren;
             this.IsBackableSegment = IsBackableSegment;
-            this.restartAfterBackWhenWSIsBelow = restartAfterBackWhenWSIsBelow;
         }
 
         public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int wsCount) {
@@ -52,41 +49,43 @@ namespace Dunegon {
             if (IsBackableSegment(segment)) {
                 //dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
                 //ClearSegment(segment);
-                SetSegmentColor(segment, "grey");
                 Debug.Log("Backout removing/greying segment (" + segment.X + ", " + segment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(segment));
+                SetSegmentColor(segment, "grey");
                 backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z, wsCount);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (exitX == 0 && exitZ == 0) {
                     Debug.Log("Uh oh -> BackoutSegment exitX & exitZ is 0 in the nonBackable RedoSegmentWithOneLessExit segment...");
                 }
-                if (wsCount >= restartAfterBackWhenWSIsBelow) {
-                    try {
-                        var newSegment = RedoSegmentWithOneLessExit(
-                            segment, 
-                            (exitX, exitZ)
-                        );
-                        Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(segment));
-                        Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
-                        ReplaceSegmentWithNewSegmentInWorkingSet(segment, newSegment);
-                        ClearSegment(segment);
-                        AddSegment(newSegment, false, "blue");
-                        //dHelper.AddNewParentToChildren(newSegment, segmentChildren);
-                        ChangeParentOfChildren(newSegment, segment);
-                    } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
-                        Debug.Log("RedoSegmentException message: " + rsex.Message);
-                        var segmentExits = segment.Exits;
-                        string segExits = "";
-                        foreach (SegmentExit ex in segment.Exits) {
-                            segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
-                        }
-                        Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
-                        var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                        var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, wsCount, backedOutSegment, true);
-                        AddSegment(stopSegment, true, "cyan");
+                try {
+                    var newSegment = RedoSegmentWithOneLessExit(
+                        segment, 
+                        (exitX, exitZ)
+                    );
+                    Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(segment));
+                    Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
+                    ReplaceSegmentWithNewSegmentInWorkingSet(segment, newSegment);
+                    ChangeParentOfChildren(newSegment, segment);
+                    ClearSegment(segment);
+                    AddSegment(newSegment, false, "blue");
+                } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
+                    Debug.Log("RedoSegmentException message: " + rsex.Message);
+                    var segmentExits = segment.Exits;
+                    string segExits = "";
+                    foreach (SegmentExit ex in segment.Exits) {
+                        segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
                     }
+                    Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
+                    var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
+                    var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, wsCount, backedOutSegment, true);
+                    AddSegment(stopSegment, true, "cyan");
                 }
             }
             return backedOutSegment;
+        }
+
+        private Segment.Segment GetSegmentByCoord(int x, int z) {
+            var segmentList = GetSegmentList();
+            return segmentList.Find(seg => (seg.X == x && seg.Z == z));
         }
 
         public Segment.Segment RedoSegmentWithOneLessExit(

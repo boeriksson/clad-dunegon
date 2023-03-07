@@ -27,7 +27,8 @@ namespace Dunegon {
 
         public Segment.Segment DecideNextSegment(
             int x, 
-            int z, GlobalDirection gDirection, 
+            int z, 
+            GlobalDirection gDirection, 
             Func<(int, int), int> GetLevelMapValueAtCoordinate, 
             int forks, 
             Segment.Segment parent
@@ -36,6 +37,7 @@ namespace Dunegon {
             int totalWeight = 0;
             List<(int, int)> krockCoords = new List<(int, int)>();
             var debugStr = "";
+            (int, int) joinCoord = (999, 999);
 
             if (parent == null) {
                 return SegmentType.Start.GetSegmentByType(x, z, gDirection, 0, null, true);
@@ -50,9 +52,6 @@ namespace Dunegon {
                 if (!unJoinableKrock) {
                     if (globalJoinableKrockCoord.Count > 0) {
                         krockCoords.AddRange(globalJoinableKrockCoord);
-                        int segmentWeight = 1000;
-                        totalWeight += segmentWeight;
-                        possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
                     } else {
                         int straightParentChain = GetStraightParentChain(parent);
                         int segmentWeight = segmentType.GetSegmentTypeWeight(forks, straightParentChain);
@@ -61,17 +60,22 @@ namespace Dunegon {
                     }
                 } 
             }
+            if (krockCoords.Count > 0) {
+                joinCoord = GetJoinCoord(x, z, gDirection, krockCoords, GetLevelMapValueAtCoordinate);
+                int segmentWeight = 100;
+                totalWeight += segmentWeight;
+                possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
+            }
             debugStr += "\npossibleSegments.Count: " + possibleSegments.Count;
             int ran = randomGenerator.Generate(totalWeight);
             int collectWeight = 0;
-            //logger.WriteLine("DecideOnNextSegment possibleSegments Count: " + possibleSegments.Count + " possibleSegments: " + logger.PrintPossibleSegments(possibleSegments) + " ran: " + ran + " totalWeight: " + totalWeight);
 
             foreach ((SegmentType segmentType, int weight) in possibleSegments) {
                 collectWeight += weight;
                 if (collectWeight >= ran) {
                     var segment = segmentType.GetSegmentByType(x, z, gDirection, forks, parent, true);
                     if (segment is JoinSegment) {
-                        ((JoinSegment)segment).KrockCoords = krockCoords;
+                        ((JoinSegment)segment).JoinCoord = joinCoord;
                         return segment;
                     }
                     return segment; 
@@ -80,6 +84,28 @@ namespace Dunegon {
             Debug.Log("STOPSEGMENT!!! -> (" + x + ", " + z + ") GlobalDirection: " + gDirection + " parent: " + (parent != null ? parent.Type : "no parent!"));
             Debug.Log(debugStr);
             return new StopSegment(x, z, gDirection, parent);
+        }
+
+        //private int proximityToParent
+
+        private (int, int) GetJoinCoord(int x, int z, GlobalDirection gDirection, List<(int, int)> krockCoordList, Func<(int, int), int> GetLevelMapValueAtCoordinate) {
+            Debug.Log("GetJoinCoord (" + x + ", " + z + ")");
+            if (GetLevelMapValueAtCoordinate((x, z)) == 1) {
+                krockCoordList.Add((x, z));
+            }
+            var xplus1Coord = DirectionConversion.GetGlobalCoordinateFromLocal((1, 0), x, z, gDirection);
+            if (GetLevelMapValueAtCoordinate(xplus1Coord) == 1) {
+                Debug.Log("GetJoinCoord adding joinSegment + 1 coordinates to krocklist: " + xplus1Coord);
+                krockCoordList.Add(xplus1Coord);
+            }
+            var orderedKrockCoordList = krockCoordList.OrderBy(coord => GetDistanceCompBetweenCoords(coord, (x, z))).ToList();
+            return orderedKrockCoordList[0];
+        }
+
+        private float GetDistanceCompBetweenCoords((int, int) coord1, (int, int) coord2) {
+            (int x1, int z1) = coord1;
+            (int x2, int z2) = coord2;
+            return ((x1 - x2) * (x1 - x2) + (z1 - z2) * (z1 - z2)); 
         }
 
         public int GetStraightParentChain(Segment.Segment segment, int ix = 0) {

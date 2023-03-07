@@ -22,6 +22,8 @@ public class PlayerMovement : MonoBehaviour
 
     public Transform orientation;
 
+    public AudioSource audioSorce;
+
     float horizontalInput;
     float verticalInput;
 
