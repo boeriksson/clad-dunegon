@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using SegmentExit = Segment.SegmentExit;
 using Segment;
 using StraightSegment = Segment.StraightSegment;
@@ -37,7 +38,7 @@ namespace Dunegon {
         private EnvironmentMgr environmentMgr;
 
         private List<(SegmentExit, Segment.Segment)> workingSet = new List<(SegmentExit, Segment.Segment)>();
-        private List<Segment.Segment> segmentList = new List<Segment.Segment>();
+        private ConcurrentDictionary<(int, int), Segment.Segment> segmentDict = new ConcurrentDictionary<(int, int), Segment.Segment>();
         private LevelMap levelMap;
         private List<GameObject> marks = new List<GameObject>();
         private List<GameObject> exitList = new List<GameObject>();
@@ -108,13 +109,6 @@ namespace Dunegon {
             levelMap.ClearContent(8);
             var segmentsToBack = new List<Segment.Segment>();
             foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) { 
-                /*
-                    Make list with each unique segment segmentsToBack
-                    Make list with each segments parent + the exit corresponing to entry (exit) (nextWorkingSet)
-                    remove segments tiles from LevelMap
-                    remove segments from segmentList
-                    clear and set workingset
-                */
                 if (segmentsToBack.Contains(wsEntry.Item2) == false) {
                     segmentsToBack.Add(wsEntry.Item2);
                 }
@@ -125,7 +119,7 @@ namespace Dunegon {
                 var exit = parent.Exits.Single(exit => exit.X == segmentToBack.X && exit.Z == segmentToBack.Z);
                 parentsAndExits.Add((exit, parent));
                 ShowMarks(parent);
-                ClearSegment(segmentToBack);
+                RemoveSegment(segmentToBack);
             }
             levelMap.ClearContent(8);
             workingSet.Clear();
@@ -158,10 +152,11 @@ namespace Dunegon {
                             new Join(
                                 (JoinSegment)segment, 
                                 AddSegment, 
-                                ClearSegment,
+                                UpdateSegment,
+                                RemoveSegment,
                                 ReplaceSegmentWithNewSegmentInWorkingSet,
                                 levelMap.GetValueAtCoordinate,
-                                GetSegmentList, 
+                                GetSegmentWithTile,
                                 GetChildrenOfSegment,
                                 ChangeParentOfChildren
                             );
@@ -169,10 +164,10 @@ namespace Dunegon {
                             Debug.Log("JoinException - backing out - message: " + ex.Message);
                             var backout = new Backout(
                                 dHelper,
-                                ClearSegment, 
+                                RemoveSegment, 
                                 SetSegmentColor,
                                 AddSegment,
-                                GetSegmentList, 
+                                UpdateSegment,
                                 GetChildrenOfSegment, 
                                 ChangeParentOfChildren,
                                 ReplaceSegmentWithNewSegmentInWorkingSet,
@@ -198,10 +193,10 @@ namespace Dunegon {
                     Debug.Log("Starting BackoutDeadEnd segment: (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " ------------------------------------------");
                     var backout = new Backout(
                         dHelper,
-                        ClearSegment, 
+                        RemoveSegment, 
                         SetSegmentColor,
                         AddSegment,
-                        GetSegmentList, 
+                        UpdateSegment,
                         GetChildrenOfSegment, 
                         ChangeParentOfChildren,
                         ReplaceSegmentWithNewSegmentInWorkingSet,
@@ -230,14 +225,46 @@ namespace Dunegon {
             yield return null;
         }
 
-        private List<Segment.Segment> GetSegmentList() {
-            return segmentList;
+        private void RemoveSegment(Segment.Segment segment) {
+            ClearSegment(segment);
+            RemoveSegmentFromDict(segment);
         }
-        private void AddSegment(Segment.Segment segment) {
-            AddSegment(segment, true);
+
+        private void ClearSegment(Segment.Segment segment) {
+            var instantiatedTiles = segment.Instantiated;
+            foreach (GameObject tile in instantiatedTiles) {
+                Destroy(tile);
+            }
+            levelMap.RemoveCoordinates(segment.GetTiles());
         }
-        private void AddSegment(Segment.Segment segment, bool scan, string strColor = "white")
-        {
+
+        private bool AddSegment(Segment.Segment segment) {
+            return AddSegment(segment, true);
+        }
+        private bool AddSegment(Segment.Segment segment, bool scan, string strColor = "white") {
+            if (AddSegmentToDict(segment)) {
+                FurbishSegment(segment, scan, strColor);
+                return true;
+            } 
+            return false;
+        }
+
+        private void UpdateSegment(Segment.Segment newSegment, Segment.Segment oldSegment, string strColor) {
+            ClearSegment(oldSegment);
+            FurbishSegment(newSegment, false, strColor);
+            var key = (newSegment.X, newSegment.Z);
+            if (!segmentDict.TryUpdate(key, newSegment, oldSegment)) {
+                Segment.Segment ailingSegment;
+                if (!segmentDict.TryRemove(key, out ailingSegment)) {
+                    Debug.Log("UpdateSegment - remove Failed");
+                }
+                Debug.Log("UpdateSegment (" + newSegment.X + ", " + newSegment.Z + ") not successfull - incorrect segment found?! oldSegment type: " + ailingSegment.Type);
+                var newSeg = segmentDict.AddOrUpdate(key, newSegment, (key, oldSeg) => newSegment);
+                Debug.Log("UpdateSegment addOrUpdate, newSeg Type: " + newSeg.Type);
+            }
+        }
+
+        private void FurbishSegment(Segment.Segment segment, bool scan, string strColor = "white") {
             var tiles = segment.GetTiles();
             var globalSpaceNeeded = DirectionConversion.GetGlobalCoordinatesFromLocal(segment.NeededSpace(), segment.X, segment.Z, segment.GlobalDirection);
 
@@ -249,7 +276,6 @@ namespace Dunegon {
 
             Color color = GetColorByStr(strColor);
             SetInstantiatedTiles(segment, tiles, color);
-            segmentList.Add(segment);
         }
 
         private static Color GetColorByStr(string strColor) {
@@ -288,7 +314,7 @@ namespace Dunegon {
                 iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
             }
             levelMap.RemoveCoordinates(segment.GetTiles());
-            segmentList.Remove(segment);
+            RemoveSegmentFromDict(segment);
         }
 
         private void RemoveOldMarksAndExits() {
@@ -376,13 +402,21 @@ namespace Dunegon {
             }
         }
 
-        private void ClearSegment(Segment.Segment segment) {
-            var instantiatedTiles = segment.Instantiated;
-            foreach (GameObject tile in instantiatedTiles) {
-                Destroy(tile);
+        private void RemoveSegmentFromDict(Segment.Segment segment) {
+            if (segmentDict.TryRemove((segment.X, segment.Z), out var removedSeg)) {
+                Debug.Log("Removed segment type: " + removedSeg.Type + " at (" + segment.X + ", " + segment.Z + ")");
+            } else {
+                Debug.Log("Remove failed!!! segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ")");
             }
-            levelMap.RemoveCoordinates(segment.GetTiles());
-            segmentList.Remove(segment);
+        }
+        private bool AddSegmentToDict(Segment.Segment segment) {
+            if (segmentDict.TryAdd((segment.X, segment.Z), segment)) {
+                Debug.Log("Added segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ")");
+                return true;
+            } else {
+                Debug.Log("Add segment failed!!! segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ")");
+                return false;
+            }
         }
 
         IEnumerator ShowMap() {
@@ -424,7 +458,7 @@ namespace Dunegon {
 
         public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment) {
             var resultList = new List<Segment.Segment>();
-            foreach(Segment.Segment segment in segmentList) {
+            foreach(Segment.Segment segment in segmentDict.Values) {
                 if (System.Object.ReferenceEquals(segment.Parent, parentSegment)) {
                     resultList.Add(segment);
                 }
@@ -439,9 +473,9 @@ namespace Dunegon {
             }
         }
 
-        private bool IsBackableSegment(Segment.Segment segment) {
+        private (bool, Segment.Segment) IsBackableSegment(Segment.Segment segment) {
+            /*
             List<Segment.Segment> segmentsAtCoordInList = segmentList.FindAll(seg => (seg.X == segment.X) && (seg.Z == segment.Z));
-            //Debug.Log("isBackableSegment - segment with coord (" + segment.X + "," + segment.Z + "). Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
             if (segmentsAtCoordInList.Count > 1) {
                 throw new Exception("WOOAAHHH isBackableSegment, there are " + segmentsAtCoordInList.Count + " segments with coord (" + segment.X + "," + segment.Z + ") in segmentList...");
             } else if (segment.Type != SegmentType.Stop && segmentsAtCoordInList.Count > 0) {
@@ -449,19 +483,25 @@ namespace Dunegon {
                 var listSegmentRef = RuntimeHelpers.GetHashCode(listSegment); 
                 var segmentRef = RuntimeHelpers.GetHashCode(segment);
             }
+            */
+            Segment.Segment actualSegment;
+            if (!segmentDict.TryGetValue((segment.X, segment.Z), out actualSegment)) {
+                Debug.Log("IsBackableSegment - Fail to get actualSegment at (" + segment.X + ", " + segment.Z + ")");
+                actualSegment = segment;
+            }
+
             var wsEntriesWithSegment = 0;
             foreach((SegmentExit, Segment.Segment) wsEntry in workingSet) {
                 if (wsEntry.Item2 != null && wsEntry.Item2.X == segment.X && wsEntry.Item2.Z == segment.Z) {
                     wsEntriesWithSegment ++;
                 }
             }
-            if (segment.Type == SegmentType.Stop) return true;
-            if (wsEntriesWithSegment > 1) return false;
-            if (segment is Room) return false;
-            if (segment.Exits.Count <= 1) return true;
-            if (segment.Join) return false;
-            if (GetChildrenOfSegment(segment).Count < 1) return true;
-            return false;
+            if (actualSegment.Type == SegmentType.Stop) return (true, actualSegment);
+            if (wsEntriesWithSegment > 1) return (false, actualSegment);
+            if (actualSegment is Room) return (false, actualSegment);
+            if (actualSegment.Exits.Count <= 1) return (true, actualSegment);
+            if (GetChildrenOfSegment(actualSegment).Count < 1) return (true, actualSegment);
+            return (false, actualSegment);
         }
 
         private (int, int, GlobalDirection) GetNewStartCoord() {
@@ -509,6 +549,20 @@ namespace Dunegon {
             var side = levelMap.MapSize/2;
             var mutedSide = (side/3) * 2;
             return UnityEngine.Random.Range(mutedSide * -1, mutedSide); 
+        }
+
+        private Segment.Segment GetSegmentWithTile((int, int) tileCoord) {
+            foreach(Segment.Segment segment in segmentDict.Values) {
+                var tiles = segment.GetTiles();
+                if (tiles.Exists(tile => tile.Item1 == tileCoord.Item1 && tile.Item2 == tileCoord.Item2)) {
+                    if (!segmentDict.TryGetValue((segment.X, segment.Z), out var segmentWithTile)) {
+                        throw new Exception("GetSegmentWithTile (" + segment.X + ", " + segment.Z + ") - Segment do no longer exist in dic??");
+                    } else {
+                        return segmentWithTile;
+                    }
+                }
+            }
+            throw new Exception("GetSegmentWithTile segment with tile (" + tileCoord.Item1 + ", " + tileCoord.Item2+ ") do not exist?!");
         }
     }
     public class GenerateDunegonException : Exception {

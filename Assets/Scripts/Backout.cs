@@ -12,31 +12,31 @@ using RuntimeHelpers = System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace Dunegon {
     public class Backout {
-        private Action<Segment.Segment> ClearSegment;
         private Action<Segment.Segment, string> SetSegmentColor;
-        private Func<List<Segment.Segment>> GetSegmentList;
         private Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment;
         private Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren;
         private Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet;
-        private Func<Segment.Segment, bool> IsBackableSegment;
-        private Action<Segment.Segment, bool, string> AddSegment;  
+        private Func<Segment.Segment, (bool, Segment.Segment)> IsBackableSegment;
+        private Action<Segment.Segment> RemoveSegment;
+        private Func<Segment.Segment, bool, string, bool> AddSegment;  
+        private Action<Segment.Segment, Segment.Segment, string> UpdateSegment;
         private DunegonHelper dHelper;
         public Backout(
-            DunegonHelper dHelper, 
-            Action<Segment.Segment> ClearSegment, 
+            DunegonHelper dHelper,
+            Action<Segment.Segment> RemoveSegment, 
             Action<Segment.Segment, string> SetSegmentColor,
-            Action<Segment.Segment, bool, string> AddSegment,
-            Func<List<Segment.Segment>> GetSegmentList,
+            Func<Segment.Segment, bool, string, bool> AddSegment,
+            Action<Segment.Segment, Segment.Segment, string> UpdateSegment, 
             Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
             Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren,
             Action<Segment.Segment, Segment.Segment> ReplaceSegmentWithNewSegmentInWorkingSet,
-            Func<Segment.Segment, bool> IsBackableSegment
+            Func<Segment.Segment, (bool, Segment.Segment)> IsBackableSegment
         ) {
             this.dHelper = dHelper;
-            this.ClearSegment = ClearSegment;
+            this.RemoveSegment = RemoveSegment;
             this.SetSegmentColor = SetSegmentColor;
             this.AddSegment = AddSegment;
-            this.GetSegmentList = GetSegmentList;
+            this.UpdateSegment = UpdateSegment;
             this.GetChildrenOfSegment = GetChildrenOfSegment;
             this.ReplaceSegmentWithNewSegmentInWorkingSet = ReplaceSegmentWithNewSegmentInWorkingSet;
             this.ChangeParentOfChildren = ChangeParentOfChildren;
@@ -46,32 +46,32 @@ namespace Dunegon {
         public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int wsCount) {
             var backedOutSegment = segment;
             //var segmentChildren = GetChildrenOfSegment(segment);
-            if (IsBackableSegment(segment)) {
+            var (isBackable, actualOldSegment) = IsBackableSegment(segment);
+            if (isBackable) {
                 //dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
-                //ClearSegment(segment);
-                Debug.Log("Backout removing/greying segment (" + segment.X + ", " + segment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(segment));
+                //RemoveSement(segment);
+                Debug.Log("Backout removing/greying segment (" + actualOldSegment.X + ", " + actualOldSegment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(actualOldSegment));
                 SetSegmentColor(segment, "grey");
-                backedOutSegment = BackoutDeadEnd(segment.Parent, segment.X, segment.Z, wsCount);
+                backedOutSegment = BackoutDeadEnd(actualOldSegment.Parent, actualOldSegment.X, actualOldSegment.Z, wsCount);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (exitX == 0 && exitZ == 0) {
                     Debug.Log("Uh oh -> BackoutSegment exitX & exitZ is 0 in the nonBackable RedoSegmentWithOneLessExit segment...");
                 }
                 try {
                     var newSegment = RedoSegmentWithOneLessExit(
-                        segment, 
+                        actualOldSegment, 
                         (exitX, exitZ)
                     );
-                    Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(segment));
+                    Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(actualOldSegment));
                     Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
-                    ReplaceSegmentWithNewSegmentInWorkingSet(segment, newSegment);
-                    ChangeParentOfChildren(newSegment, segment);
-                    ClearSegment(segment);
-                    AddSegment(newSegment, false, "blue");
+                    ReplaceSegmentWithNewSegmentInWorkingSet(actualOldSegment, newSegment);
+                    ChangeParentOfChildren(newSegment, actualOldSegment);
+                    UpdateSegment(newSegment, segment, "blue");
                 } catch (RedoSegmentException rsex) { // fail to replace backedoutsegment with exits -1, capping with stopsegment instead!
                     Debug.Log("RedoSegmentException message: " + rsex.Message);
-                    var segmentExits = segment.Exits;
+                    var segmentExits = actualOldSegment.Exits;
                     string segExits = "";
-                    foreach (SegmentExit ex in segment.Exits) {
+                    foreach (SegmentExit ex in actualOldSegment.Exits) {
                         segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
                     }
                     Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
@@ -81,11 +81,6 @@ namespace Dunegon {
                 }
             }
             return backedOutSegment;
-        }
-
-        private Segment.Segment GetSegmentByCoord(int x, int z) {
-            var segmentList = GetSegmentList();
-            return segmentList.Find(seg => (seg.X == x && seg.Z == z));
         }
 
         public Segment.Segment RedoSegmentWithOneLessExit(
