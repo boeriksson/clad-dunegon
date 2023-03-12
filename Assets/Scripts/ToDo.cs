@@ -2,8 +2,9 @@
     Start must be "plugged"
     If dunegon ends when it's too small, new entrys should be added to working set! (if fork < 3 add 1 att appropriate ställe)
     After hitting the indexOutOfBounds of the levelMap, corridors are backedout and exits are NOT plugged..
-    Buggar: 
-        - Room that is joiningSegment (green) lack one exit? 
+    Buggar:
+        - Need to ensure that "joiningSide" always is correct - cannot make dec based on joinSegment.GlobalDirection!
+        - Must clear segments/exits from workingSet on backout (remake as dict?) 
 
     Done: 
     -- Rollbacks should replace original fork with exit -1, not end with deadends!
@@ -16,6 +17,7 @@
     -- New JoinSegment - should add nessecary segments starting with a straight, to end at a predefined "join" coordinate. Coord before "join" is the new exit
     -- Rollbacked corridors should end with a deadend
     -- Buggar: 
+        - Room that is joiningSegment (green) lack one exit? 
         - Ibland skrivs korridorer över? (bara backedOut and replaced??)
         - Efter backout and removewithonelessexit, the old "tiles" are still there - 2 sets of tiles (room only?) - Happends when there are 1 or more backouts... 
         - Krock med annan scan backar ut ena parten, men den andra stannar halvfärdig

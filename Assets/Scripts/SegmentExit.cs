@@ -35,7 +35,11 @@ namespace Segment {
                 }
             }
         }
-
+        public SegmentExit(int x, int z, GlobalDirection gDirection) {
+            _x = x;
+            _z = z;
+            _direction = gDirection;
+        }
         public int X {
             get {
                 return _x;

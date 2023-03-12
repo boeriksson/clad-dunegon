@@ -67,9 +67,6 @@ namespace Dunegon {
             if (Input.GetKeyDown(KeyCode.M)) {
                 StartCoroutine(ShowMap());
             }
-            if (Input.GetKeyDown(KeyCode.B)) {
-                StartCoroutine(BackupWorkingSet());
-            }
             /*
             if (Input.GetKeyDown(KeyCode.P)) {
                 StartCoroutine(PrintSegments());
@@ -104,29 +101,6 @@ namespace Dunegon {
             }
         }
 
-        IEnumerator BackupWorkingSet() {
-            RemoveOldMarksAndExits();
-            levelMap.ClearContent(8);
-            var segmentsToBack = new List<Segment.Segment>();
-            foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) { 
-                if (segmentsToBack.Contains(wsEntry.Item2) == false) {
-                    segmentsToBack.Add(wsEntry.Item2);
-                }
-            }
-            var parentsAndExits = new List<(SegmentExit, Segment.Segment)>();
-            foreach(Segment.Segment segmentToBack in segmentsToBack) {
-                var parent = segmentToBack.Parent;
-                var exit = parent.Exits.Single(exit => exit.X == segmentToBack.X && exit.Z == segmentToBack.Z);
-                parentsAndExits.Add((exit, parent));
-                ShowMarks(parent);
-                RemoveSegment(segmentToBack);
-            }
-            levelMap.ClearContent(8);
-            workingSet.Clear();
-            workingSet.AddRange(parentsAndExits);
-            yield return null;
-        }
-
         IEnumerator AddWorkingSet() {
             RemoveOldMarksAndExits();
 
@@ -134,6 +108,8 @@ namespace Dunegon {
             //foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
             var workingSetCount = workingSet.Count;
             for (int i = workingSetCount -1; i >= 0; i--) {
+                Debug.Log("new main loop iteration i = " + i + " workingSet.Count: " + workingSet.Count);
+                printWorkingSet();
                 var wsEntry = workingSet[i];
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
@@ -142,9 +118,11 @@ namespace Dunegon {
                     segmentStart.Z,
                     segmentStart.Direction,
                     levelMap.GetValueAtCoordinate,
+                    GetSegmentWithTile,
                     workingSet.Count,
                     parentSegment
                 );
+                Debug.Log("MainLoop adding segment (" + segment.X + ", " + segment.Z + ") Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
                 if (!(segment is StopSegment)) {
                     if (segment is JoinSegment) {
                         try {
@@ -162,48 +140,31 @@ namespace Dunegon {
                             );
                         } catch (JoinException ex) {
                             Debug.Log("JoinException - backing out - message: " + ex.Message);
-                            var backout = new Backout(
-                                dHelper,
-                                RemoveSegment, 
-                                SetSegmentColor,
-                                AddSegment,
-                                UpdateSegment,
-                                GetChildrenOfSegment, 
-                                ChangeParentOfChildren,
-                                ReplaceSegmentWithNewSegmentInWorkingSet,
-                                IsBackableSegment
-                            );
-                            backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
+                            Backout(segment);
                         }
                     } else {
                         Debug.Log("Main loop, adding segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ") ref: " + RuntimeHelpers.GetHashCode(segment) + " value at coord in levelMap: " + levelMap.GetValueAtCoordinate((segment.X, segment.Z)));
-                        AddSegment(segment);
-                        var addOnSegments = segment.GetAddOnSegments();
-                        if (addOnSegments.Count > 0) {
-                            foreach(Segment.Segment addSegment in addOnSegments) {
-                                AddSegment(addSegment);    
-                                AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
-                            }
+                        bool addSuccess = AddSegment(segment);
+                        if (!addSuccess) {
+                            Debug.Log("Fail to Add segment (" + segment.X + ", " + segment.Z + ") in mainloop...");
+                            Backout(segment);
                         } else {
-                            AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                            var addOnSegments = segment.GetAddOnSegments();
+                            if (addOnSegments.Count > 0) {
+                                foreach(Segment.Segment addSegment in addOnSegments) {
+                                    AddSegment(addSegment);    
+                                    AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
+                                }
+                            } else {
+                                AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                            }
                         }
                     }
                     currentSegment++;
                 } else {
                     Debug.Log("Starting BackoutDeadEnd segment: (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " ------------------------------------------");
-                    var backout = new Backout(
-                        dHelper,
-                        RemoveSegment, 
-                        SetSegmentColor,
-                        AddSegment,
-                        UpdateSegment,
-                        GetChildrenOfSegment, 
-                        ChangeParentOfChildren,
-                        ReplaceSegmentWithNewSegmentInWorkingSet,
-                        IsBackableSegment
-                    );
-                    var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
-                    Debug.Log("##### StopSegment - Backing out of dead end! backedOutSegment: (" + backedOutSegment.X + ", " + backedOutSegment.Z + ") " + backedOutSegment.Type + " ----------------------------------------");
+                    Backout(segment);
+                    Debug.Log("##### StopSegment - Backing out of dead end! ----------------------------------------");
                     //Debug.Log(" workingSet.Count: " + workingSet.Count + " nextWorkingSet.Count: " + nextWorkingSet.Count);
                     //if (workingSet.Count < restartAfterBackWhenWSIsBelow) {
                     //    nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
@@ -225,6 +186,21 @@ namespace Dunegon {
             yield return null;
         }
 
+        private void Backout(Segment.Segment segment) {
+            var backout = new Backout(
+                dHelper,
+                RemoveSegment, 
+                SetSegmentColor,
+                AddSegment,
+                UpdateSegment,
+                GetChildrenOfSegment, 
+                ChangeParentOfChildren,
+                ReplaceSegmentWithNewSegmentInWorkingSet,
+                IsBackableSegment
+            );
+            var backedOutSegment = backout.BackoutDeadEnd(segment, 0, 0, workingSet.Count);
+        }
+
         private void RemoveSegment(Segment.Segment segment) {
             ClearSegment(segment);
             RemoveSegmentFromDict(segment);
@@ -239,6 +215,7 @@ namespace Dunegon {
         }
 
         private bool AddSegment(Segment.Segment segment) {
+            Debug.Log("AddSegment (" + segment.X + ", " + segment.Z + " )");
             return AddSegment(segment, true);
         }
         private bool AddSegment(Segment.Segment segment, bool scan, string strColor = "white") {
@@ -259,7 +236,9 @@ namespace Dunegon {
                     Debug.Log("UpdateSegment - remove Failed");
                 }
                 Debug.Log("UpdateSegment (" + newSegment.X + ", " + newSegment.Z + ") not successfull - incorrect segment found?! oldSegment type: " + ailingSegment.Type);
+                ClearSegment(ailingSegment);
                 var newSeg = segmentDict.AddOrUpdate(key, newSegment, (key, oldSeg) => newSegment);
+                FurbishSegment(newSeg, false, "green");
                 Debug.Log("UpdateSegment addOrUpdate, newSeg Type: " + newSeg.Type);
             }
         }
@@ -406,7 +385,7 @@ namespace Dunegon {
             if (segmentDict.TryRemove((segment.X, segment.Z), out var removedSeg)) {
                 Debug.Log("Removed segment type: " + removedSeg.Type + " at (" + segment.X + ", " + segment.Z + ")");
             } else {
-                Debug.Log("Remove failed!!! segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ")");
+                Debug.Log("Remove failed!!! Segment already removed segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ")");
             }
         }
         private bool AddSegmentToDict(Segment.Segment segment) {
@@ -448,12 +427,16 @@ namespace Dunegon {
             yield return null;
         }
         public void ReplaceSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
+            Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet start oldSeg Type: " + oldSegment.Type + " (" + oldSegment.X + ", " + oldSegment.Z + ")  newSegment Type: " + newSegment.Type + " (" + newSegment.X + ", " + newSegment.Z + ")");
+            printWorkingSet();
             for (int i = 0; i < workingSet.Count; i++) {
                 var wsSegment = workingSet[i].Item2;
                 if (wsSegment != null && wsSegment.X == oldSegment.X && wsSegment.Z == oldSegment.Z) {
                     workingSet[i] = (workingSet[i].Item1, newSegment);
                 }
             }
+            Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet end");
+            printWorkingSet();
         }
 
         public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment) {
@@ -499,6 +482,7 @@ namespace Dunegon {
             if (actualSegment.Type == SegmentType.Stop) return (true, actualSegment);
             if (wsEntriesWithSegment > 1) return (false, actualSegment);
             if (actualSegment is Room) return (false, actualSegment);
+            if (actualSegment.Join) return (false, actualSegment);
             if (actualSegment.Exits.Count <= 1) return (true, actualSegment);
             if (GetChildrenOfSegment(actualSegment).Count < 1) return (true, actualSegment);
             return (false, actualSegment);
@@ -564,7 +548,17 @@ namespace Dunegon {
             }
             throw new Exception("GetSegmentWithTile segment with tile (" + tileCoord.Item1 + ", " + tileCoord.Item2+ ") do not exist?!");
         }
+
+        private void printWorkingSet() {
+            var printStr = "workingSet: \n";
+            foreach((SegmentExit exit, Segment.Segment seg) work in workingSet) {
+                var parentStr = work.seg == null ? " parent == null " : " parent Type: " + work.seg.Type + " at (" + work.seg.X + ", " + work.seg.Z + ")";
+                printStr += "  exit (" + work.exit.X + ", " + work.exit.Z + ") " + parentStr + "\n";
+            }
+            Debug.Log(printStr);
+        }
     }
+
     public class GenerateDunegonException : Exception {
         public GenerateDunegonException(string message) : base(message) {
         }

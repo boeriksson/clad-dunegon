@@ -17,9 +17,11 @@ namespace Dunegon {
 
     public class DunegonHelper {
         private RandomGenerator randomGenerator;
+        private Logger logger = new Logger("Logs/debug");
 
         public DunegonHelper() {
             randomGenerator = new DefaultRandom();
+
         }
         public DunegonHelper(RandomGenerator _randomGenerator) {
             this.randomGenerator = _randomGenerator;
@@ -29,7 +31,8 @@ namespace Dunegon {
             int x, 
             int z, 
             GlobalDirection gDirection, 
-            Func<(int, int), int> GetLevelMapValueAtCoordinate, 
+            Func<(int, int), int> GetLevelMapValueAtCoordinate,
+            Func<(int, int), Segment.Segment> GetSegmentWithTile, 
             int forks, 
             Segment.Segment parent
         ) {
@@ -62,9 +65,12 @@ namespace Dunegon {
             }
             if (krockCoords.Count > 0) {
                 joinCoord = GetJoinCoord(x, z, gDirection, krockCoords, GetLevelMapValueAtCoordinate);
-                int segmentWeight = 100;
-                totalWeight += segmentWeight;
-                possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
+                logger.WriteLine("Should be called once.. ");
+                //if (!TooTightLoop(parent, joinCoord, GetSegmentWithTile)) {
+                    int segmentWeight = 100;
+                    totalWeight += segmentWeight;
+                    possibleSegments.Add(item: (SegmentType.Join, segmentWeight));
+                //}
             }
             debugStr += "\npossibleSegments.Count: " + possibleSegments.Count;
             int ran = randomGenerator.Generate(totalWeight);
@@ -86,7 +92,52 @@ namespace Dunegon {
             return new StopSegment(x, z, gDirection, parent);
         }
 
-        //private int proximityToParent
+        private bool TooTightLoop(Segment.Segment startSeg, (int, int) coord, Func<(int, int), Segment.Segment> GetSegmentWithTile, int ix = 0, List<(int, int)> visited = null) {
+            if (visited == null) {
+                visited = new List<(int, int)>();
+                logger.WriteLine("visited == null, creating a new List");
+            }
+            if (visited.Exists(lcoord => lcoord.Item1 == coord.Item1 && lcoord.Item2 == coord.Item2)) {
+                logger.WriteLine("visited exists - returning false..");
+                return false;
+            } else {
+                visited.Add(coord);
+            }
+            Segment.Segment segment;
+            try {
+                segment = GetSegmentWithTile(coord);
+            } catch (Exception ex) {
+                logger.WriteLine("segment not found ex, returning false..");
+                return false;
+            }
+            logger.WriteLine("TooTightLoop startSeg at (" + startSeg.X + ", " + startSeg.Z + ") Type: " + startSeg.Type + " | segment at (" + segment.X + ", " + segment.Z  + ") Type: " + segment.Type);
+            if (segment.X == startSeg.X && segment.Z == startSeg.Z) {
+                logger.WriteLine("startSeg found - returning true");
+                return true;
+            }
+            if (ix > 3) {
+                logger.WriteLine("ix > 9 returning false");
+                return false;
+
+            }           
+            var segParent = segment.Parent;
+            if (segParent == null) {
+                logger.WriteLine("segParent == null");
+            } else {
+                if (TooTightLoop(startSeg, (segParent.X, segParent.Z), GetSegmentWithTile, ix++, visited)) {
+                    logger.WriteLine("segParent true..");
+                    return true;
+                }
+            }
+            foreach(SegmentExit exit in segment.Exits) {
+                if (TooTightLoop(startSeg, (exit.X, exit.Z), GetSegmentWithTile, ix++, visited)) {
+                    logger.WriteLine("segExit true...");
+                    return true;
+                }
+            }
+            logger.WriteLine("TightLoop end returning false for segment at (" + segment.X + ", " + segment.Z  + ")");
+            return false;
+        }
 
         private (int, int) GetJoinCoord(int x, int z, GlobalDirection gDirection, List<(int, int)> krockCoordList, Func<(int, int), int> GetLevelMapValueAtCoordinate) {
             Debug.Log("GetJoinCoord (" + x + ", " + z + ")");

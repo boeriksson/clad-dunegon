@@ -165,11 +165,11 @@ namespace Dunegon {
                             "----------------------------------------------------------------------------");
                         }
                         if (redoSegment is Room3x3Segment) {
-                            return new Room3x3Segment((Room3x3Segment)redoSegment, sExit);
+                            return new Room3x3Segment((Room3x3Segment)redoSegment, sExit, sExit.Direction);
                         } else if (redoSegment is Room3x4Segment) {
-                            return new Room3x4Segment((Room3x4Segment)redoSegment, sExit);
+                            return new Room3x4Segment((Room3x4Segment)redoSegment, sExit, sExit.Direction);
                         } else if (redoSegment is RoomVariableSegment) {
-                            return new RoomVariableSegment((RoomVariableSegment)redoSegment, sExit);
+                            return new RoomVariableSegment((RoomVariableSegment)redoSegment, sExit, sExit.Direction);
                         }
                     }
                     break;
