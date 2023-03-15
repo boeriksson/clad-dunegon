@@ -255,17 +255,17 @@ namespace Segment {
             return exit;
         }
 
-        protected void AddRemoveExit(SegmentExit addRemoveExit, GlobalDirection gDirection) {
+        protected void AddRemoveExit(SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) {
             var shiftedExit = ShiftExitToSide(addRemoveExit, gDirection);
             Debug.Log("AddRemoveExit inc exit:  (" + addRemoveExit.X + ", " + addRemoveExit.Z + ") shifted to (" + shiftedExit.X + ", " + shiftedExit.Z + ")");
             var exitIndex = _exits.FindIndex(exit => exit.X == shiftedExit.X && exit.Z == shiftedExit.Z);
-            if (exitIndex >= 0) {
-                Debug.Log("Room.AddRemoveExit exit exists - removing at (" + shiftedExit.X + ", " + shiftedExit.Z + ")" );
-                _exits.RemoveAt(exitIndex);
-            } else {
+            if (add) {
                 var exitsCoordStr = String.Join(", ", _exits.Select(x => "("+ x.X +","+ x.Z +")")); 
                 Debug.Log("Room.AddRemoveExit exit not found, adding to _exits - adding at (" + shiftedExit.X + ", " + shiftedExit.Z + ") \n existing _exits: " + exitsCoordStr);
                 _exits.Add(shiftedExit);
+            } else if (exitIndex >= 0) {
+                Debug.Log("Room.AddRemoveExit exit exists - removing at (" + shiftedExit.X + ", " + shiftedExit.Z + ")" );
+                _exits.RemoveAt(exitIndex);
             }
         }
     }
@@ -277,10 +277,10 @@ namespace Segment {
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 3, 2)}), x, z, gDirection, true);
         }
 
-        public Room3x3Segment(Room3x3Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+        public Room3x3Segment(Room3x3Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
             _exits = oldRoom.Exits;
             _tiles = oldRoom.GetTiles();
-            AddRemoveExit(addRemoveExit, gDirection);
+            AddRemoveExit(addRemoveExit, gDirection, add);
             _space = oldRoom.NeededSpace();
         }
 
@@ -352,10 +352,10 @@ namespace Segment {
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 4, 2)}), x, z, gDirection, true);
         }
 
-        public Room3x4Segment(Room3x4Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
+        public Room3x4Segment(Room3x4Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent) {
             _exits = oldRoom.Exits;
             _tiles = oldRoom.GetTiles();
-            AddRemoveExit(addRemoveExit, gDirection);
+            AddRemoveExit(addRemoveExit, gDirection, add);
             _space = oldRoom.NeededSpace();
         }
 
@@ -396,14 +396,14 @@ namespace Segment {
             _space = GetBoxCoordinates(GetBoxList(new []{(-1, (-_entry - 1), _xLength, _zLength - _entry)}), x, z, gDirection, true);
         }
 
-        public RoomVariableSegment(RoomVariableSegment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent)
+        public RoomVariableSegment(RoomVariableSegment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.GlobalDirection, oldRoom.Parent)
         {
             _xLength = oldRoom.XLength;
             _zLength = oldRoom.ZLength;
             _entry = oldRoom.Entry;
             _exits = oldRoom.Exits;
             _tiles = oldRoom.GetTiles();
-            AddRemoveExit(addRemoveExit, gDirection);
+            AddRemoveExit(addRemoveExit, gDirection,add);
             _space = oldRoom.NeededSpace();
         }
 

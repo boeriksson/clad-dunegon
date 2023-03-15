@@ -105,6 +105,7 @@ namespace Dunegon {
             RemoveOldMarksAndExits();
 
             List<(SegmentExit, Segment.Segment)> nextWorkingSet = new List<(SegmentExit, Segment.Segment)>();
+            List<(int, int)> removeFromNextWorkingSetAfterLoop = new List<(int, int)>();
             //foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
             var workingSetCount = workingSet.Count;
             for (int i = workingSetCount -1; i >= 0; i--) {
@@ -136,7 +137,8 @@ namespace Dunegon {
                                 levelMap.GetValueAtCoordinate,
                                 GetSegmentWithTile,
                                 GetChildrenOfSegment,
-                                ChangeParentOfChildren
+                                ChangeParentOfChildren, 
+                                removeFromNextWorkingSetAfterLoop
                             );
                         } catch (JoinException ex) {
                             Debug.Log("JoinException - backing out - message: " + ex.Message);
@@ -144,19 +146,24 @@ namespace Dunegon {
                         }
                     } else {
                         Debug.Log("Main loop, adding segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ") ref: " + RuntimeHelpers.GetHashCode(segment) + " value at coord in levelMap: " + levelMap.GetValueAtCoordinate((segment.X, segment.Z)));
-                        bool addSuccess = AddSegment(segment);
-                        if (!addSuccess) {
-                            Debug.Log("Fail to Add segment (" + segment.X + ", " + segment.Z + ") in mainloop...");
-                            Backout(segment);
-                        } else {
-                            var addOnSegments = segment.GetAddOnSegments();
-                            if (addOnSegments.Count > 0) {
-                                foreach(Segment.Segment addSegment in addOnSegments) {
-                                    AddSegment(addSegment);    
-                                    AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
-                                }
+                        
+                        if (removeFromNextWorkingSetAfterLoop.Find(coord => (coord.Item1 == segment.X && coord.Item2 == segment.Z)) == default) {
+                            bool addSuccess = AddSegment(segment);
+                            if (!addSuccess) {
+                                Debug.Log("Fail to Add segment (" + segment.X + ", " + segment.Z + ") in mainloop...");
+                                Backout(segment);
                             } else {
-                                AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                                var addOnSegments = segment.GetAddOnSegments();
+                                if (addOnSegments.Count > 0) {
+                                    foreach(Segment.Segment addSegment in addOnSegments) {
+                                        AddSegment(addSegment);    
+                                        AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
+                                        Debug.Log("Added addSegment (" + addSegment.X + ", " + addSegment.Z + ") to nextWorkingSet");
+                                    }
+                                } else {
+                                    AddExitsToNextWorkingSet(nextWorkingSet, segment);
+                                    Debug.Log("Added Segment (" + segment.X + ", " + segment.Z + ") to nextWorkingSet");
+                                }
                             }
                         }
                     }
@@ -165,10 +172,15 @@ namespace Dunegon {
                     Debug.Log("Starting BackoutDeadEnd segment: (" + segment.X + ", " + segment.Z + ") type: " + segment.Type + " ------------------------------------------");
                     Backout(segment);
                     Debug.Log("##### StopSegment - Backing out of dead end! ----------------------------------------");
-                    //Debug.Log(" workingSet.Count: " + workingSet.Count + " nextWorkingSet.Count: " + nextWorkingSet.Count);
-                    //if (workingSet.Count < restartAfterBackWhenWSIsBelow) {
-                    //    nextWorkingSet.Add((backedOutSegment.Exits[0], backedOutSegment));
-                    //}
+                }
+            }
+            // Remove entry from nextws in case of a join to an active thread
+            Debug.Log("removeFromNextWorkingSetAfterLoop.Count: " + removeFromNextWorkingSetAfterLoop.Count);
+            foreach((int x, int z) coord in removeFromNextWorkingSetAfterLoop) {
+                var ix = nextWorkingSet.FindIndex(wsEntry => (wsEntry.Item1.X == coord.x && wsEntry.Item1.Z == coord.z));
+                if (ix > -1) {
+                    Debug.Log("nextWorkingSet - removing entry with coord (" + coord.x + ", " + coord.z + ")");
+                    nextWorkingSet.RemoveAt(ix);
                 }
             }
             if (nextWorkingSet.Count < 1) {
@@ -457,16 +469,7 @@ namespace Dunegon {
         }
 
         private (bool, Segment.Segment) IsBackableSegment(Segment.Segment segment) {
-            /*
-            List<Segment.Segment> segmentsAtCoordInList = segmentList.FindAll(seg => (seg.X == segment.X) && (seg.Z == segment.Z));
-            if (segmentsAtCoordInList.Count > 1) {
-                throw new Exception("WOOAAHHH isBackableSegment, there are " + segmentsAtCoordInList.Count + " segments with coord (" + segment.X + "," + segment.Z + ") in segmentList...");
-            } else if (segment.Type != SegmentType.Stop && segmentsAtCoordInList.Count > 0) {
-                var listSegment = segmentsAtCoordInList[0]; 
-                var listSegmentRef = RuntimeHelpers.GetHashCode(listSegment); 
-                var segmentRef = RuntimeHelpers.GetHashCode(segment);
-            }
-            */
+
             Segment.Segment actualSegment;
             if (!segmentDict.TryGetValue((segment.X, segment.Z), out actualSegment)) {
                 Debug.Log("IsBackableSegment - Fail to get actualSegment at (" + segment.X + ", " + segment.Z + ")");

@@ -26,7 +26,8 @@ namespace Dunegon {
             Func<(int, int), int> GetLevelMapValueAtCoordinate,
             Func<(int, int), Segment.Segment> GetSegmentWithTile,
             Func<Segment.Segment, List<Segment.Segment>> GetChildrenOfSegment,
-            Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren
+            Action<Segment.Segment, Segment.Segment> ChangeParentOfChildren,
+            List<(int, int)> removeFromNextWorkingSetAfterLoop
         ) {
             joinSegment = _joinSegment;
             this.GetLevelMapValueAtCoordinate = GetLevelMapValueAtCoordinate;
@@ -47,13 +48,15 @@ namespace Dunegon {
                     if (!AddSegment(addSegment, false, "yellow")) {
                         throw new JoinException("Trying failing to AddSegment an addSegment..");
                     }
+                    removeFromNextWorkingSetAfterLoop.Add((addSegment.X, addSegment.Z));
                 }
                 Debug.Log("Before ReplaceJoiningSegmentWithPlusExitSegment");
                 ReplaceJoiningSegmentWithPlusExitSegment(
                     joiningSegment, 
                     exitCoord, 
                     UpdateSegment,
-                    ReplaceSegmentWithNewSegmentInWorkingSet
+                    ReplaceSegmentWithNewSegmentInWorkingSet,
+                    removeFromNextWorkingSetAfterLoop
                 ); 
             } catch (JoinException ex) {
                 Debug.Log("JoinException...ex: " + ex.Message);
@@ -240,9 +243,10 @@ namespace Dunegon {
             Segment.Segment joiningSegment,  
             (int, int) exitCoord, 
             Action<Segment.Segment, Segment.Segment, string> UpdateSegment,
-            Action<Segment.Segment, Segment.Segment> ReplaceJoiningSegmentWithNewSegmentInWorkingSet  
+            Action<Segment.Segment, Segment.Segment> ReplaceJoiningSegmentWithNewSegmentInWorkingSet,
+            List<(int, int)> removeFromNextWorkingSetAfterLoop
         ) {
-            var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, joinSegment, exitCoord);
+            var newSegment = RedoSegmentWithAdditionalExit(joiningSegment, joinSegment, exitCoord, removeFromNextWorkingSetAfterLoop);
             Debug.Log("ReplaceJoiningSegmentWithPlusExitSegment joiningSegment ref: " + RuntimeHelpers.GetHashCode(joiningSegment));
             Debug.Log("ReplaceJoiningSegmentWithPlusExitSegment newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
             Debug.Log("newSegment type: " + newSegment.Type);
@@ -253,10 +257,15 @@ namespace Dunegon {
             UpdateSegment(newSegment, joiningSegment, "green");
         }
 
-        private Segment.Segment RedoSegmentWithAdditionalExit(Segment.Segment joiningSegment, JoinSegment joinSegment, (int, int) exitCoord) {
+        private Segment.Segment RedoSegmentWithAdditionalExit(
+            Segment.Segment joiningSegment, 
+            JoinSegment joinSegment, 
+            (int, int) exitCoord, 
+            List<(int, int)> removeFromNextWorkingSetAfterLoop
+        ) {
             (int x, int z) le = dHelper.GetLocalCooridnatesForSegment(joiningSegment, exitCoord);
             var exitSegment = getExitSegment(joinSegment, exitCoord);
-            Debug.Log("RedoSegmentWithAdditionalExit exitSegment: (" + exitSegment.X + ", " + exitSegment.Z +") type: " + exitSegment.Type);
+            if (exitSegment != null) Debug.Log("RedoSegmentWithAdditionalExit exitSegment: (" + exitSegment.X + ", " + exitSegment.Z +") type: " + exitSegment.Type);
             LocalDirection joiningSide = GetJoiningSide(joiningSegment, joinSegment, exitSegment);
             Debug.Log("RedoSegmentWithAdditionalExit joiningSegment Type: " + joiningSegment.Type + " joiningSide: " + joiningSide + " le.x: " + le.x + " le.z: " + le.z);
             void LogProblem() {
@@ -277,9 +286,11 @@ namespace Dunegon {
                         return joiningSegment;
                     } else if (le.x == 1 && le.z == 0 && joiningSide == LocalDirection.Straight) {
                         Debug.Log("This side really? head?!");
+                        removeFromNextWorkingSetAfterLoop.Add((joiningSegment.X, joiningSegment.Z));
                         return joiningSegment; 
                     } else if (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Straight) {
                         Debug.Log("This side really? ontop?!");
+                        removeFromNextWorkingSetAfterLoop.Add((joiningSegment.X, joiningSegment.Z));
                         return joiningSegment; 
                     }
                     break;
@@ -307,6 +318,9 @@ namespace Dunegon {
                         return SegmentType.StraightRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } else if (le.Item1 == 0 && le.z == -1|| (le.x == 0 && le.z == 0 && joiningSide == LocalDirection.Left)) {
                         return SegmentType.LeftRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
+                    } else if (le.Item1 == 0 && le.z == 1) {
+                        removeFromNextWorkingSetAfterLoop.Add((joiningSegment.X, joiningSegment.Z));
+                        return joiningSegment;
                     }
                     break;
                 }
@@ -315,6 +329,9 @@ namespace Dunegon {
                         return SegmentType.StraightLeft.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
                     } else if (le.Item1 == 0 && le.z == 1) {
                         return SegmentType.LeftRight.GetSegmentByType(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, 0, joiningSegment.Parent);
+                    } else if (le.Item1 == 0 && le.z == -1) {
+                        removeFromNextWorkingSetAfterLoop.Add((joiningSegment.X, joiningSegment.Z));
+                        return joiningSegment;
                     }
                     break;
                 }
@@ -342,11 +359,11 @@ namespace Dunegon {
                         var newExit = new SegmentExit(joiningSegment.X, joiningSegment.Z, joiningSegment.GlobalDirection, le.x, le.z, joiningSide);
                         Debug.Log("newExit: (" + newExit.X + "," + newExit.Z + ")");
                         if (joiningSegment is Room3x3Segment) {
-                            return new Room3x3Segment((Room3x3Segment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide));
+                            return new Room3x3Segment((Room3x3Segment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide), true);
                         } else if (joiningSegment is Room3x4Segment) {
-                            return new Room3x4Segment((Room3x4Segment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide));
+                            return new Room3x4Segment((Room3x4Segment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide), true);
                         } else if (joiningSegment is RoomVariableSegment) {
-                            return new RoomVariableSegment((RoomVariableSegment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide));
+                            return new RoomVariableSegment((RoomVariableSegment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide), true);
                         }
                         Debug.Log("Fail to decide which room?! ");
                     }
