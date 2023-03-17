@@ -43,7 +43,7 @@ namespace Dunegon {
             this.IsBackableSegment = IsBackableSegment;
         }
 
-        public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int wsCount) {
+        public Segment.Segment BackoutDeadEnd(Segment.Segment segment, int exitX, int exitZ, int exitY, int wsCount) {
             var backedOutSegment = segment;
             //var segmentChildren = GetChildrenOfSegment(segment);
             var (isBackable, actualOldSegment) = IsBackableSegment(segment);
@@ -52,7 +52,7 @@ namespace Dunegon {
                 //RemoveSement(segment);
                 Debug.Log("Backout removing/greying segment (" + actualOldSegment.X + ", " + actualOldSegment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(actualOldSegment));
                 SetSegmentColor(segment, "grey");
-                backedOutSegment = BackoutDeadEnd(actualOldSegment.Parent, actualOldSegment.X, actualOldSegment.Z, wsCount);
+                backedOutSegment = BackoutDeadEnd(actualOldSegment.Parent, actualOldSegment.X, actualOldSegment.Z, actualOldSegment.Y, wsCount);
             } else { // We're gonna remove the exit in segment where we roll back to
                 if (exitX == 0 && exitZ == 0) {
                     Debug.Log("Uh oh -> BackoutSegment exitX & exitZ is 0 in the nonBackable RedoSegmentWithOneLessExit segment...");
@@ -60,7 +60,7 @@ namespace Dunegon {
                 try {
                     var newSegment = RedoSegmentWithOneLessExit(
                         actualOldSegment, 
-                        (exitX, exitZ)
+                        (exitX, exitZ, exitY)
                     );
                     Debug.Log("BackoutDeadEnd oldSegment ref: " + RuntimeHelpers.GetHashCode(actualOldSegment));
                     Debug.Log("BackoutDeadEnd newSegment ref: " + RuntimeHelpers.GetHashCode(newSegment));
@@ -72,11 +72,11 @@ namespace Dunegon {
                     var segmentExits = actualOldSegment.Exits;
                     string segExits = "";
                     foreach (SegmentExit ex in actualOldSegment.Exits) {
-                        segExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
+                        segExits += "   (" + ex.X + ", " + ex.Z + ", " + ex.Y + ") direction: " + ex.Direction + "\n";
                     }
-                    Debug.Log("Exit not found (" + exitX + ", " + exitZ + ")\n exits: " + segExits);
-                    var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ);
-                    var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Direction, wsCount, backedOutSegment, true);
+                    Debug.Log("Exit not found (" + exitX + ", " + exitZ + ", " + exitY + ")\n exits: " + segExits);
+                    var segmentExit = segmentExits.Single(exit => exit.X == exitX && exit.Z == exitZ && exit.Y == exitY);
+                    var stopSegment = SegmentType.Stop.GetSegmentByType(segmentExit.X, segmentExit.Z, segmentExit.Y, segmentExit.Direction, wsCount, backedOutSegment, true);
                     AddSegment(stopSegment, true, "cyan");
                 }
             }
@@ -85,62 +85,62 @@ namespace Dunegon {
 
         public Segment.Segment RedoSegmentWithOneLessExit(
                 Segment.Segment redoSegment, 
-                (int x, int z) exit
+                (int x, int z, int y) exit
         ) {
             void LogProblem(Segment.Segment redoSegment, int leX, int leZ) {
                 Debug.Log("RedoSegmentWithOneLessExit problem---------------------------------------\n" + 
-                "redoSegment: {" + redoSegment.X + ", " + redoSegment.Z + "} gDirection: " + redoSegment.GlobalDirection + "\n" +
+                "redoSegment: {" + redoSegment.X + ", " + redoSegment.Z + ", " + redoSegment.Y + "} gDirection: " + redoSegment.GlobalDirection + "\n" +
                 "Remove exit on " + redoSegment.Type + " exitToRemove: {" + leX + ", " + leZ + "}\n" + 
                 "----------------------------------------------------------------------------");
             }
-            (int leX, int leZ) = dHelper.GetLocalCooridnatesForSegment(redoSegment, (exit.x, exit.z));
+            (int leX, int leZ, int leY) = dHelper.GetLocalCooridnatesForSegment(redoSegment, (exit.x, exit.z, exit.y));
             Debug.Log("RedoSegmentWithOneLessExit  (" + redoSegment.X + ", " + redoSegment.Z + ") type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ")" );
             switch (redoSegment.Type) {
                 case SegmentType.LeftRight: {
                     if (leX == 0 && leZ == -1) {
                         Debug.Log("LeftRight - left");
-                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     } 
                     if (leX == 0 && leZ == 1) {
                         Debug.Log("LeftRight - right");
-                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y,  redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     }
                     break;
                 }
                 case SegmentType.StraightRight: {
                     if (leX == 1 && leZ == 0) {
                         Debug.Log("StraightRight - right");
-                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Right.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     } 
                     if (leX == 0 && leZ == 1) {
                         Debug.Log("StraightRight - straight");
-                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     }
                     break;
                 }
                 case SegmentType.StraightLeft: {
                     if (leX == 1 && leZ == 0) {
                         Debug.Log("StraightLeft - left");
-                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Left.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     } 
                     if (leX == 0 && leZ == -1) {
                         Debug.Log("StraightLeft - straight");
-                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.Straight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     }
                     break;
                 }
                 case SegmentType.LeftStraightRight: {
                     if (leX == 1 && leZ == 0) {
                         Debug.Log("LeftStraightRight - leftRight");
-                        return SegmentType.LeftRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.LeftRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     } 
                     if (leX == 0 && leZ == 1) {
                         Debug.Log("LeftStraightRight - straightRight");
-                        return SegmentType.StraightRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.StraightRight.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     }
                     if (leX == 0 && leZ == -1) {
                         Debug.Log("LeftStraightRight - straightLeft");
-                        return SegmentType.StraightLeft.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection, 0, redoSegment.Parent);
+                        return SegmentType.StraightLeft.GetSegmentByType(redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection, 0, redoSegment.Parent);
                     }
                     break;
                 }
@@ -148,9 +148,9 @@ namespace Dunegon {
                     if (redoSegment is Room) {
                         SegmentExit sExit = null;
                         try {
-                            (int geX, int geZ) = DirectionConversion.GetGlobalCoordinatesFromLocal(new List<(int, int)>() {(leX, leZ)}, redoSegment.X, redoSegment.Z, redoSegment.GlobalDirection)[0];
+                            (int geX, int geZ, int geY) = DirectionConversion.GetGlobalCoordinatesFromLocal(new List<(int, int, int)>() {(leX, leZ, leY)}, redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection)[0];
                             Debug.Log("RedoSegmentWithOneLessExit global exit coord: (" + geX + ", " + geZ + ")");
-                            sExit = redoSegment.GetExitByCoord(geX, geZ);
+                            sExit = redoSegment.GetExitByCoord(geX, geZ, geY);
                             Debug.Log("redoSegment Room exit found!");
                         } catch (RedoSegmentException) {
                             string redoSegExits = "";

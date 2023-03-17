@@ -1,22 +1,29 @@
 /*
-    Start must be "plugged"
-    If dunegon ends when it's too small, new entrys should be added to working set! (if fork < 3 add 1 att appropriate ställe)
-    After hitting the indexOutOfBounds of the levelMap, corridors are backedout and exits are NOT plugged..
+    Adding diffrent levels to the dunegon
+    Adding stairs between the levels
+    Adding a chance for shutes between rooms that overlap the same (x, z)
+    Make room span several levels - adding stairs in the rooms where needed to supply this
+    Add spiral stair segments that could span several levels
+    Make the availiable space more dynamic - perhaps starting with a smaller area, but then widening it as needs arise!?
+
     Buggar:
-        - Need to ensure that "joiningSide" always is correct - cannot make dec based on joinSegment.GlobalDirection!
-        - Must clear segments/exits from workingSet on backout (remake as dict?) 
 
     Done: 
     -- Rollbacks should replace original fork with exit -1, not end with deadends!
+    -- Start must be "plugged"
     -- Remove the idea of JoinSegment! Replace with join map in Join and rework to allow for room-room openings
     -- Check findpath for krocks..
+    -- If dunegon ends when it's too small, new entrys should be added to working set! (if fork < 3 add 1 att appropriate ställe)
     -- Set stuff as classProps in join
     -- Straight corridors in a row should lower chance of another straight..
     -- Corridor endings should be plugged with a deadend!
     -- Corridor merge should not overlay existing space with a straight - must replace adjoining section with a section exit +1 
     -- New JoinSegment - should add nessecary segments starting with a straight, to end at a predefined "join" coordinate. Coord before "join" is the new exit
     -- Rollbacked corridors should end with a deadend
+    -- After hitting the indexOutOfBounds of the levelMap, corridors are backedout and exits are NOT plugged..
     -- Buggar: 
+        - Must clear segments/exits from workingSet on backout (remake as dict?) 
+        - Need to ensure that "joiningSide" always is correct - cannot make dec based on joinSegment.GlobalDirection!
         - Room that is joiningSegment (green) lack one exit? 
         - Ibland skrivs korridorer över? (bara backedOut and replaced??)
         - Efter backout and removewithonelessexit, the old "tiles" are still there - 2 sets of tiles (room only?) - Happends when there are 1 or more backouts... 

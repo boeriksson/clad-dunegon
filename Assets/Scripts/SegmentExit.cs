@@ -5,61 +5,68 @@ using Debug = UnityEngine.Debug;
 
 namespace Segment {
     public class SegmentExit {
-        private int _x;
-        private int _z;
-        private GlobalDirection _direction;
+        private int x;
+        private int z;
+        private int y;
+        private GlobalDirection direction;
 
-        public SegmentExit(int entryX, int entryZ, GlobalDirection gDirection, int forward, int right, LocalDirection lDirection) {
-            _direction = DirectionConversion.GetDirection(gDirection, lDirection);
-            //Debug.Log("SegmentExit gDirection: " + gDirection + " localDirection: " + lDirection + " _direction: " + _direction);
+        public SegmentExit(int entryX, int entryZ, int entryY, GlobalDirection gDirection, int forward, int right, int down, LocalDirection lDirection) {
+            direction = DirectionConversion.GetDirection(gDirection, lDirection);
+            y = entryY + down;
             switch (gDirection) {
                 case GlobalDirection.North: {
-                    _x = entryX + forward;
-                    _z = entryZ + right;
+                    x = entryX + forward;
+                    z = entryZ + right;
                     break;
                 }
                 case GlobalDirection.East: {
-                    _x = entryX - right;
-                    _z = entryZ + forward;
+                    x = entryX - right;
+                    z = entryZ + forward;
                     break;
                 }
                 case GlobalDirection.South: {
-                    _x = entryX - forward;
-                    _z = entryZ - right;
+                    x = entryX - forward;
+                    z = entryZ - right;
                     break;
                 }
                 case GlobalDirection.West: {
-                    _x = entryX + right;
-                    _z = entryZ - forward;
+                    x = entryX + right;
+                    z = entryZ - forward;
                     break;
                 }
             }
         }
-        public SegmentExit(int x, int z, GlobalDirection gDirection) {
-            _x = x;
-            _z = z;
-            _direction = gDirection;
+        public SegmentExit(int x, int z, int y, GlobalDirection gDirection) {
+            this.x = x;
+            this.z = z;
+            this.y = y;
+            direction = gDirection;
         }
         public int X {
             get {
-                return _x;
+                return x;
             }
         }
 
         public int Z {
             get {
-                return _z;
+                return z;
+            }
+        }
+        public int Y {
+            get {
+                return y;
             }
         }
 
         public GlobalDirection Direction {
             get {
-                return _direction;
+                return direction;
             }
         }
 
         public override string ToString(){
-            return "{" + _x + ", " + _z + "} Gdirection: " + _direction;
+            return "(" + x + ", " + z + ", " + y + " ) Gdirection: " + direction;
         } 
     }
 }

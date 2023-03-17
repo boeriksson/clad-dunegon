@@ -54,149 +54,149 @@ namespace Segment {
     }
     
     public static class SegmentTypeExtension {
-        public static Segment GetSegmentByType(this SegmentType segmentType, int x, int z, GlobalDirection gDirection, int forks, Segment parent, bool isReal = false) {
+        public static Segment GetSegmentByType(this SegmentType segmentType, int x, int z, int y, GlobalDirection gDirection, int forks, Segment parent, bool isReal = false) {
             switch (segmentType) {
                 case SegmentType.Straight: {
-                    return new StraightSegment(x, z, gDirection, parent);
+                    return new StraightSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.Start: {
-                    return new StartSegment(x, z, gDirection);
+                    return new StartSegment(x, z, y, gDirection);
                 }
                 case SegmentType.StraightNoCheck: {
-                    //return new StraightNoCheckSegment(x, z, gDirection, parent);
-                    return new StraightSegment(x, z, gDirection, parent, true);
+                    //return new StraightNoCheckSegment(x, z, y, gDirection, parent);
+                    return new StraightSegment(x, z, y, gDirection, parent, true);
                 }
                 case SegmentType.Stop: {
-                    return new StopSegment(x, z, gDirection, parent);
+                    return new StopSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.Join: {
-                    return new JoinSegment(x, z, gDirection, parent);
+                    return new JoinSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.Right: {
-                    return new RightSegment(x, z, gDirection, parent);
+                    return new RightSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.Left: {
-                    return new LeftSegment(x, z, gDirection, parent);
+                    return new LeftSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.StraightRight: {
-                    return new StraightRightSegment(x, z, gDirection, parent);
+                    return new StraightRightSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.StraightLeft: {
-                    return new StraightLeftSegment(x, z, gDirection, parent);
+                    return new StraightLeftSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.LeftRight: {
-                    return new LeftRightSegment(x, z, gDirection, parent);
+                    return new LeftRightSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.LeftStraightRight: {
-                    return new LeftStraightRightSegment(x, z, gDirection, parent);
+                    return new LeftStraightRightSegment(x, z, y, gDirection, parent);
                 }
                 case SegmentType.Room3x3: {
-                    return new Room3x3Segment(x, z, gDirection, forks, parent);
+                    return new Room3x3Segment(x, z, y, gDirection, forks, parent);
                 }
                 case SegmentType.Room3x4: {
-                    return new Room3x4Segment(x, z, gDirection, forks, parent);
+                    return new Room3x4Segment(x, z, y, gDirection, forks, parent);
                 }
                 case SegmentType.Room3x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 3, 5, forks, parent, isReal, SegmentType.Room3x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 3, 5, forks, parent, isReal, SegmentType.Room3x5);
                 }
                 case SegmentType.Room3x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 3, 6, forks, parent, isReal, SegmentType.Room3x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 3, 6, forks, parent, isReal, SegmentType.Room3x6);
                 }
                 case SegmentType.Room3x7: {
-                    return new RoomVariableSegment(x, z, gDirection, 3, 7, forks, parent, isReal, SegmentType.Room3x7);
+                    return new RoomVariableSegment(x, z, y, gDirection, 3, 7, forks, parent, isReal, SegmentType.Room3x7);
                 }
                 case SegmentType.Room5x3: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 3, forks, parent, isReal, SegmentType.Room5x3);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 3, forks, parent, isReal, SegmentType.Room5x3);
                 }
                 case SegmentType.Room6x3: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 3, forks, parent, isReal, SegmentType.Room6x3);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 3, forks, parent, isReal, SegmentType.Room6x3);
                 }
                 case SegmentType.Room7x3: {
-                    return new RoomVariableSegment(x, z, gDirection, 7, 3, forks, parent, isReal, SegmentType.Room7x3);
+                    return new RoomVariableSegment(x, z, y, gDirection, 7, 3, forks, parent, isReal, SegmentType.Room7x3);
                 }
                 case SegmentType.Room8x3: {
-                    return new RoomVariableSegment(x, z, gDirection, 8, 3, forks, parent, isReal, SegmentType.Room8x3);
+                    return new RoomVariableSegment(x, z, y, gDirection, 8, 3, forks, parent, isReal, SegmentType.Room8x3);
                 }
                 case SegmentType.Room3x8: {
-                    return new RoomVariableSegment(x, z, gDirection, 3, 8, forks, parent, isReal, SegmentType.Room3x8);
+                    return new RoomVariableSegment(x, z, y, gDirection, 3, 8, forks, parent, isReal, SegmentType.Room3x8);
                 }
                 case SegmentType.Room4x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 4, forks, parent, isReal, SegmentType.Room4x4);
+                    return new RoomVariableSegment(x, z, y, gDirection, 4, 4, forks, parent, isReal, SegmentType.Room4x4);
                 }
                 case SegmentType.Room4x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 5, forks, parent, isReal, SegmentType.Room4x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 4, 5, forks, parent, isReal, SegmentType.Room4x5);
                 }
                 case SegmentType.Room5x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 4, forks, parent, isReal, SegmentType.Room5x4);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 4, forks, parent, isReal, SegmentType.Room5x4);
                 }
                 case SegmentType.Room4x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 6, forks, parent, isReal, SegmentType.Room4x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 4, 6, forks, parent, isReal, SegmentType.Room4x6);
                 }
                 case SegmentType.Room6x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 4, forks, parent, isReal, SegmentType.Room6x4);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 4, forks, parent, isReal, SegmentType.Room6x4);
                 }
                 case SegmentType.Room7x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 7, 4, forks, parent, isReal, SegmentType.Room7x4);
+                    return new RoomVariableSegment(x, z, y, gDirection, 7, 4, forks, parent, isReal, SegmentType.Room7x4);
                 }
                 case SegmentType.Room4x7: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 7, forks, parent, isReal, SegmentType.Room4x7);
+                    return new RoomVariableSegment(x, z, y, gDirection, 4, 7, forks, parent, isReal, SegmentType.Room4x7);
                 }
                 case SegmentType.Room8x4: {
-                    return new RoomVariableSegment(x, z, gDirection, 8, 4, forks, parent, isReal, SegmentType.Room8x4);
+                    return new RoomVariableSegment(x, z, y, gDirection, 8, 4, forks, parent, isReal, SegmentType.Room8x4);
                 }
                 case SegmentType.Room4x8: {
-                    return new RoomVariableSegment(x, z, gDirection, 4, 8, forks, parent, isReal, SegmentType.Room4x8);
+                    return new RoomVariableSegment(x, z, y, gDirection, 4, 8, forks, parent, isReal, SegmentType.Room4x8);
                 }
                 case SegmentType.Room5x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 5, forks, parent, isReal,SegmentType.Room5x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 5, forks, parent, isReal,SegmentType.Room5x5);
                 }
                 case SegmentType.Room5x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 6, forks, parent, isReal, SegmentType.Room5x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 6, forks, parent, isReal, SegmentType.Room5x6);
                 }
                 case SegmentType.Room6x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 5, forks, parent, isReal, SegmentType.Room6x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 5, forks, parent, isReal, SegmentType.Room6x5);
                 }
                 case SegmentType.Room7x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 7, 5, forks, parent, isReal, SegmentType.Room7x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 7, 5, forks, parent, isReal, SegmentType.Room7x5);
                 }
                 case SegmentType.Room5x7: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 7, forks, parent, isReal, SegmentType.Room5x7);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 7, forks, parent, isReal, SegmentType.Room5x7);
                 }
                 case SegmentType.Room8x5: {
-                    return new RoomVariableSegment(x, z, gDirection, 8, 5, forks, parent, isReal, SegmentType.Room8x5);
+                    return new RoomVariableSegment(x, z, y, gDirection, 8, 5, forks, parent, isReal, SegmentType.Room8x5);
                 }
                 case SegmentType.Room5x8: {
-                    return new RoomVariableSegment(x, z, gDirection, 5, 8, forks, parent, isReal, SegmentType.Room5x8);
+                    return new RoomVariableSegment(x, z, y, gDirection, 5, 8, forks, parent, isReal, SegmentType.Room5x8);
                 }
                 case SegmentType.Room6x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 6, forks, parent, isReal, SegmentType.Room6x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 6, forks, parent, isReal, SegmentType.Room6x6);
                 }
                 case SegmentType.Room6x7: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 7, forks, parent, isReal, SegmentType.Room6x7);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 7, forks, parent, isReal, SegmentType.Room6x7);
                 }
                 case SegmentType.Room7x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 7, 6, forks, parent, isReal, SegmentType.Room7x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 7, 6, forks, parent, isReal, SegmentType.Room7x6);
                 }
                 case SegmentType.Room6x8: {
-                    return new RoomVariableSegment(x, z, gDirection, 6, 8, forks, parent, isReal, SegmentType.Room6x8);
+                    return new RoomVariableSegment(x, z, y, gDirection, 6, 8, forks, parent, isReal, SegmentType.Room6x8);
                 }
                 case SegmentType.Room8x6: {
-                    return new RoomVariableSegment(x, z, gDirection, 8, 6, forks, parent, isReal, SegmentType.Room8x6);
+                    return new RoomVariableSegment(x, z, y, gDirection, 8, 6, forks, parent, isReal, SegmentType.Room8x6);
                 }
                 case SegmentType.Room7x7: {
-                    return new RoomVariableSegment(x, z, gDirection, 7, 7, forks, parent, isReal, SegmentType.Room7x7);
+                    return new RoomVariableSegment(x, z, y, gDirection, 7, 7, forks, parent, isReal, SegmentType.Room7x7);
                 }
                 case SegmentType.Room8x8: {
-                    return new RoomVariableSegment(x, z, gDirection, 8, 8, forks, parent, isReal, SegmentType.Room8x8);
+                    return new RoomVariableSegment(x, z, y, gDirection, 8, 8, forks, parent, isReal, SegmentType.Room8x8);
                 }
                 case SegmentType.Room9x9: {
-                    return new RoomVariableSegment(x, z, gDirection, 9, 9, forks, parent, isReal, SegmentType.Room9x9);
+                    return new RoomVariableSegment(x, z, y, gDirection, 9, 9, forks, parent, isReal, SegmentType.Room9x9);
                 }
                 case SegmentType.Room10x10: {
-                    return new RoomVariableSegment(x, z, gDirection, 10, 10, forks, parent, isReal, SegmentType.Room10x10);
+                    return new RoomVariableSegment(x, z, y, gDirection, 10, 10, forks, parent, isReal, SegmentType.Room10x10);
                 }
                 default: {
-                    return new StraightSegment(x, z, gDirection, parent);
+                    return new StraightSegment(x, z, y, gDirection, parent);
                 }
             }
         }

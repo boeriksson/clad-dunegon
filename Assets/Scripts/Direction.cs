@@ -50,33 +50,33 @@ namespace Direction {
                 }
             }
         }
-        public static (int, int) GetGlobalCoordinateFromLocal((int, int) localCoordinate, int startX, int startZ, GlobalDirection gDirection) {
-            return GetGlobalCoordinatesFromLocal(new List<(int, int)> {(localCoordinate.Item1, localCoordinate.Item2)}, startX, startZ, gDirection)[0];
+        public static (int, int, int) GetGlobalCoordinateFromLocal((int, int, int) localCoordinate, int startX, int startZ, int startY, GlobalDirection gDirection) {
+            return GetGlobalCoordinatesFromLocal(new List<(int, int, int)> {(localCoordinate.Item1, localCoordinate.Item2, localCoordinate.Item3)}, startX, startZ, startY, gDirection)[0];
         }
-        public static List<(int, int)> GetGlobalCoordinatesFromLocal(List<(int, int)> localCoordinates, int startX, int startZ, GlobalDirection gDirection) {
-            var globalCoordinates = new List<(int, int)>();
+        public static List<(int, int, int)> GetGlobalCoordinatesFromLocal(List<(int, int, int)> localCoordinates, int startX, int startZ, int startY, GlobalDirection gDirection) {
+            var globalCoordinates = new List<(int, int, int)>();
             switch(gDirection) {
                 case GlobalDirection.North: {
-                    foreach((int x, int z) in localCoordinates) {
-                        globalCoordinates.Add((startX + x, startZ + z));
+                    foreach((int x, int z, int y) in localCoordinates) {
+                        globalCoordinates.Add((startX + x, startZ + z, startY));
                     }
                     break;
                 }
                 case GlobalDirection.East: {
-                    foreach((int x, int z) in localCoordinates) {
-                        globalCoordinates.Add((startX - z, startZ + x));
+                    foreach((int x, int z, int y) in localCoordinates) {
+                        globalCoordinates.Add((startX - z, startZ + x, startY));
                     }
                     break;
                 }
                 case GlobalDirection.South: {
-                    foreach((int x, int z) in localCoordinates) {
-                        globalCoordinates.Add((startX - x, startZ - z));
+                    foreach((int x, int z, int y) in localCoordinates) {
+                        globalCoordinates.Add((startX - x, startZ - z, startY));
                     }
                     break;
                 }
                 case GlobalDirection.West: {
-                    foreach((int x, int z) in localCoordinates) {
-                        globalCoordinates.Add((startX + z, startZ - x));
+                    foreach((int x, int z, int y) in localCoordinates) {
+                        globalCoordinates.Add((startX + z, startZ - x, startY));
                     }
                     break;
                 }
