@@ -19,6 +19,7 @@ public class EnvironmentMgr : MonoBehaviour {
     public GameObject floorCelingCornerLeftRightExit;
     public GameObject floorCelingExit;
     public GameObject start;
+    public GameObject straightStairs;
 
     public TMP_Text debugText;
 

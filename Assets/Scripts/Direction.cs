@@ -17,6 +17,11 @@ namespace Direction {
         Left, 
         Back
     }
+    
+    public enum VerticalDirection {
+        Up,
+        Down
+    }
 
     public static class DirectionConversion {
         public static GlobalDirection GetDirection(GlobalDirection gd, LocalDirection ld) {
@@ -58,25 +63,25 @@ namespace Direction {
             switch(gDirection) {
                 case GlobalDirection.North: {
                     foreach((int x, int z, int y) in localCoordinates) {
-                        globalCoordinates.Add((startX + x, startZ + z, startY));
+                        globalCoordinates.Add((startX + x, startZ + z, startY + y));
                     }
                     break;
                 }
                 case GlobalDirection.East: {
                     foreach((int x, int z, int y) in localCoordinates) {
-                        globalCoordinates.Add((startX - z, startZ + x, startY));
+                        globalCoordinates.Add((startX - z, startZ + x, startY + y));
                     }
                     break;
                 }
                 case GlobalDirection.South: {
                     foreach((int x, int z, int y) in localCoordinates) {
-                        globalCoordinates.Add((startX - x, startZ - z, startY));
+                        globalCoordinates.Add((startX - x, startZ - z, startY + y));
                     }
                     break;
                 }
                 case GlobalDirection.West: {
                     foreach((int x, int z, int y) in localCoordinates) {
-                        globalCoordinates.Add((startX + z, startZ - x, startY));
+                        globalCoordinates.Add((startX + z, startZ - x, startY + y));
                     }
                     break;
                 }
@@ -84,4 +89,4 @@ namespace Direction {
             return globalCoordinates;
         }
     }
-}
+}   

@@ -50,7 +50,7 @@ namespace Dunegon {
             if (isBackable) {
                 //dHelper.RemoveDanglingWorkingTreads(workingSet, segment);
                 //RemoveSement(segment);
-                Debug.Log("Backout removing/greying segment (" + actualOldSegment.X + ", " + actualOldSegment.Z + ") ref: "+ RuntimeHelpers.GetHashCode(actualOldSegment));
+                Debug.Log("Backout removing/greying segment (" + actualOldSegment.X + ", " + actualOldSegment.Z + ", " + actualOldSegment.Y + ") ref: "+ RuntimeHelpers.GetHashCode(actualOldSegment));
                 SetSegmentColor(segment, "grey");
                 backedOutSegment = BackoutDeadEnd(actualOldSegment.Parent, actualOldSegment.X, actualOldSegment.Z, actualOldSegment.Y, wsCount);
             } else { // We're gonna remove the exit in segment where we roll back to
@@ -94,7 +94,7 @@ namespace Dunegon {
                 "----------------------------------------------------------------------------");
             }
             (int leX, int leZ, int leY) = dHelper.GetLocalCooridnatesForSegment(redoSegment, (exit.x, exit.z, exit.y));
-            Debug.Log("RedoSegmentWithOneLessExit  (" + redoSegment.X + ", " + redoSegment.Z + ") type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ")" );
+            Debug.Log("RedoSegmentWithOneLessExit  (" + redoSegment.X + ", " + redoSegment.Z + ", " + redoSegment.Y + ") type: " + redoSegment.Type + " localCoord: (" + leX + ", " + leZ + ", " + leY + ")" );
             switch (redoSegment.Type) {
                 case SegmentType.LeftRight: {
                     if (leX == 0 && leZ == -1) {
@@ -149,17 +149,17 @@ namespace Dunegon {
                         SegmentExit sExit = null;
                         try {
                             (int geX, int geZ, int geY) = DirectionConversion.GetGlobalCoordinatesFromLocal(new List<(int, int, int)>() {(leX, leZ, leY)}, redoSegment.X, redoSegment.Z, redoSegment.Y, redoSegment.GlobalDirection)[0];
-                            Debug.Log("RedoSegmentWithOneLessExit global exit coord: (" + geX + ", " + geZ + ")");
+                            Debug.Log("RedoSegmentWithOneLessExit global exit coord: (" + geX + ", " + geZ + ", " + geY + ")");
                             sExit = redoSegment.GetExitByCoord(geX, geZ, geY);
                             Debug.Log("redoSegment Room exit found!");
                         } catch (RedoSegmentException) {
                             string redoSegExits = "";
                             foreach (SegmentExit ex in redoSegment.Exits) {
-                                redoSegExits += "   (" + ex.X + "," + ex.Z + ") direction: " + ex.Direction + "\n";
+                                redoSegExits += "   (" + ex.X + ", " + ex.Z + ", " + ex.Y + ") direction: " + ex.Direction + "\n";
                             }
                             Debug.Log("RedoSegmentWithOneLessExit problem---------------------------------------\n" + 
-                            "redoSegment: {" + redoSegment.X + ", " + redoSegment.Z + "} gDirection: " + redoSegment.GlobalDirection + "\n" +
-                            "Remove exit on " + redoSegment.Type + " exitToRemove: {" + leX + ", " + leZ + "}\n" + 
+                            "redoSegment: (" + redoSegment.X + ", " + redoSegment.Z + ", " + redoSegment.Y + ") gDirection: " + redoSegment.GlobalDirection + "\n" +
+                            "Remove exit on " + redoSegment.Type + " exitToRemove: (" + leX + ", " + leZ + ", " + leY + ")\n" + 
                             "exits on redoSegment: \n" + 
                             redoSegExits +
                             "----------------------------------------------------------------------------");

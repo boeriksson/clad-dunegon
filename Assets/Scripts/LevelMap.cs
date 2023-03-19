@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using UnityEditor;
 
 namespace level {
     public class LevelMap {
@@ -27,8 +28,11 @@ namespace level {
         public void AddCooridnates(List<(int, int, int)> coordinates, int content) {
             foreach ((int, int, int) coordinate in coordinates) {
                 int mapX = coordinate.Item1 + mapSize / 2;
-                int mapY = coordinate.Item2 + mapSize /2;
-                map[mapX, mapY, coordinate.Item3] = content;
+                int mapZ = coordinate.Item2 + mapSize /2;
+                int mapY = coordinate.Item3;
+                if (mapY < mapLevels && mapY >= 0) {
+                    map[mapX, mapZ, coordinate.Item3] = content;
+                }
             }
         }
 

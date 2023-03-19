@@ -23,12 +23,14 @@ namespace Segment {
             randomGenerator = _randomGenerator;
         }
 
-        protected List<(int, int, int)> GetBoxCoordinates(List<(int, int, int, int)> boxList, int x, int z, int y, GlobalDirection gDirection, Boolean removeCoordBeforeEntry = false) {
+        protected List<(int, int, int)> GetBoxCoordinates(List<(int, int, int, int, int, int)> boxList, Boolean removeCoordBeforeEntry = false) {
             var coordinateList = new List<(int, int, int)>();
-            foreach((int, int, int, int) box in boxList) {
-                for (int i = box.Item1; i <= box.Item3; i++) {
-                    for (int j = box.Item2; j <= box.Item4; j++) {
-                        coordinateList.Add((i, j, y));
+            foreach(var (xMin, zMin, xMax, zMax, yMin, yMax) in boxList) {
+                for (int y = yMin; y <= yMax; y++) {
+                    for (int x = xMin; x <= xMax; x++) {
+                        for (int z = zMin; z <= zMax; z++) {
+                            coordinateList.Add((x, z, y));
+                        }
                     }
                 }
             }
@@ -37,7 +39,7 @@ namespace Segment {
                 int ixOfEntry = -1;
                 int i = 0;
                 foreach (var coord in coordinateList) {
-                    if (coord.Item1 == -1 && coord.Item2 == 0 && coord.Item3 == y) {
+                    if (coord.Item1 == -1 && coord.Item2 == 0 && coord.Item3 == 0) {
                         ixOfEntry = i;
                     }
                     i++;
@@ -48,8 +50,8 @@ namespace Segment {
             return coordinateList;
         }
 
-        protected List<(int, int, int, int)> GetBoxList((int, int, int, int)[] boxCoord) {
-            var boxList = new List<(int, int, int, int)>();
+        protected List<(int, int, int, int, int, int)> GetBoxList((int, int, int, int, int, int)[] boxCoord) {
+            var boxList = new List<(int, int, int, int, int, int)>();
             foreach(var coord in boxCoord) {
                 boxList.Add(coord);
             }
@@ -271,8 +273,8 @@ namespace Segment {
     public class Room3x3Segment : Room {
         public Room3x3Segment(int x, int z, int y, GlobalDirection gDirection, int forks, Segment parent) : base(SegmentType.Room3x3, x, z, y, gDirection, parent) {
             exits = Get3x3Exits(x, z, y, gDirection, forks);
-            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1)}), x, z, y, gDirection), X, Z, Y, gDirection);
-            space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 3, 2)}), x, z, y, gDirection, true);
+            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1, 0, 0)})), X, Z, Y, gDirection);
+            space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 3, 2, 0, 0)}), true);
         }
 
         public Room3x3Segment(Room3x3Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.Y, oldRoom.GlobalDirection, oldRoom.Parent) {
@@ -305,7 +307,7 @@ namespace Segment {
         public StartSegment(int x, int z, int y, GlobalDirection gDirection) : base(SegmentType.Start, x, z, y, gDirection, null) {
             exits = new List<SegmentExit>();
             exits.Add(new SegmentExit(x, z, y, gDirection, 2, 0, 0, LocalDirection.Straight));
-            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1)}), x, z, y, gDirection), X, Z, Y, gDirection);
+            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 2, 1, 0, 0)})), X, Z, Y, gDirection);
             space = new List<(int, int, int)>();
         }
         
@@ -338,8 +340,8 @@ namespace Segment {
     public class Room3x4Segment : Room {
         public Room3x4Segment(int x, int z, int y, GlobalDirection gDirection, int forks, Segment parent) : base(SegmentType.Room3x4, x, z, y, gDirection, parent) {
             exits = Get3x4Exits(x, z, y, gDirection, forks);
-            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 3, 1)}), x, z, y, gDirection), X, Z, Y, gDirection);
-            space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 4, 2)}), x, z, y, gDirection, true);
+            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -1, 3, 1, 0, 0)})), X, Z, Y, gDirection);
+            space = GetBoxCoordinates(GetBoxList(new []{(-1, -2, 4, 2, 0, 0)}), true);
         }
 
         public Room3x4Segment(Room3x4Segment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.Y, oldRoom.GlobalDirection, oldRoom.Parent) {
@@ -382,14 +384,11 @@ namespace Segment {
             this.zLength = zLength;
             type = segmentType;
             (exits, entry) = GetVariableLengthExits(x, z, y, gDirection, this.xLength, this.zLength, forks);
-            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new []{(0, -entry, this.xLength - 1, (this.zLength - 1) - entry) }), x, z, y, gDirection), X, Z, Y, gDirection);
-            space = GetBoxCoordinates(GetBoxList(new []{(-1, (-entry - 1), xLength, this.zLength - entry) }), x, z, y, gDirection, true);
-            if (isReal) {
-                Debug.Log("RoomVariableSegment entryY: " + entryY);
-                PrintTiles(tiles);
-            }
+            tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new[]{(0, -entry, this.xLength - 1, (this.zLength - 1) - entry, 0, 0)})), X, Z, Y, gDirection);
+            space = GetBoxCoordinates(GetBoxList(new []{(-1, (-entry - 1), xLength, this.zLength - entry, 0, 0)}), true);
         }
-
+        
+        /*
         private void PrintTiles(List<(int, int, int)> tiles) {
             var printStr = "RoomTiles: ";
             foreach((int x, int z, int y) tile in tiles) {
@@ -397,6 +396,7 @@ namespace Segment {
             }
             Debug.Log(printStr);
         }
+        */
 
         public RoomVariableSegment(RoomVariableSegment oldRoom, SegmentExit addRemoveExit, GlobalDirection gDirection, bool add) : base(oldRoom.Type, oldRoom.X, oldRoom.Z, oldRoom.Y, oldRoom.GlobalDirection, oldRoom.Parent)
         {
@@ -408,7 +408,7 @@ namespace Segment {
             AddRemoveExit(addRemoveExit, gDirection,add);
             space = oldRoom.NeededSpace();
         }
-        private (List<SegmentExit>, int entry) GetVariableLengthExits(int x, int z, int y,GlobalDirection gDirection, int xLength, int zLength, int forks) {
+        private (List<SegmentExit>, int entry) GetVariableLengthExits(int x, int z, int y, GlobalDirection gDirection, int xLength, int zLength, int forks) {
             var potentialXExits = GetPotentialExitsByLength(xLength);
             var potentialZExits = GetPotentialExitsByLength(zLength);
             var potentialLocalExits = new List<(int, int, int, LocalDirection)>();

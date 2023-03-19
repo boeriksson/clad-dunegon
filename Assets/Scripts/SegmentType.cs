@@ -1,4 +1,5 @@
 using System;
+using Direction;
 using GlobalDirection = Direction.GlobalDirection;
 using Debug = UnityEngine.Debug;
 
@@ -49,7 +50,9 @@ namespace Segment {
         Room7x7,
         Room8x8,
         Room9x9,
-        Room10x10
+        Room10x10,
+        SStairsUp,
+        SStairsDown
 
     }
     
@@ -194,6 +197,12 @@ namespace Segment {
                 }
                 case SegmentType.Room10x10: {
                     return new RoomVariableSegment(x, z, y, gDirection, 10, 10, forks, parent, isReal, SegmentType.Room10x10);
+                }
+                case SegmentType.SStairsUp: {
+                    return new StraightStair(x, z, y, gDirection, VerticalDirection.Up, parent);
+                }
+                case SegmentType.SStairsDown: {
+                    return new StraightStair(x, z, y, gDirection, VerticalDirection.Down, parent);
                 }
                 default: {
                     return new StraightSegment(x, z, y, gDirection, parent);
@@ -354,6 +363,12 @@ namespace Segment {
                 }
                 case SegmentType.Room10x10: {
                     return 1;
+                }
+                case SegmentType.SStairsUp: {
+                    return 100;
+                }
+                case SegmentType.SStairsDown: {
+                    return 100;
                 }
                 default: {
                     return 0;

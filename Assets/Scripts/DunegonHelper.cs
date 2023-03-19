@@ -173,8 +173,9 @@ namespace Dunegon {
         ) {
             var globalJoinableKrockCoord = new List<(int, int, int)>();
             foreach((int, int, int) space in globalSpaceNeeded) {
-                if (GetLevelMapValueAtCoordinate(space) != 0) {
-                    if (segmentType == SegmentType.Straight  && GetLevelMapValueAtCoordinate(space) == 1) {
+                var levelMapValueAtCoord = GetLevelMapValueAtCoordinate(space);
+                if (levelMapValueAtCoord != 0) {
+                    if (segmentType == SegmentType.Straight  && levelMapValueAtCoord == 1) {
                         globalJoinableKrockCoord.Add(space);
                     } else {
                         return (true, new List<(int, int, int)>());
@@ -184,19 +185,20 @@ namespace Dunegon {
             return (false, globalJoinableKrockCoord);
         }
 
-        public (int, int, int) GetLocalCooridnatesForSegment(Segment.Segment segment, (int, int, int) gCoord) { 
+        public (int, int, int) GetLocalCooridnatesForSegment(Segment.Segment segment, (int, int, int) gCoord) {
+            var (gX, gZ, gY) = gCoord;
             switch(segment.GlobalDirection) {
                 case GlobalDirection.North: {
-                    return (gCoord.Item1 - segment.X, gCoord.Item2 - segment.Z, gCoord.Item3);
+                    return (gX - segment.X, gZ - segment.Z, Item3: gY - segment.Y);
                 }
                 case GlobalDirection.East: {
-                    return (gCoord.Item2 - segment.Z, segment.X - gCoord.Item1, gCoord.Item3);
+                    return (gZ - segment.Z, segment.X - gX, Item3: gY - segment.Y);
                 }
                 case GlobalDirection.South: {
-                    return (segment.X - gCoord.Item1, segment.Z - gCoord.Item2, gCoord.Item3);
+                    return (segment.X - gX, segment.Z - gZ, Item3: gY - segment.Y);
                 }
                 case GlobalDirection.West: {
-                    return (segment.Z - gCoord.Item2, gCoord.Item1 - segment.X, gCoord.Item3);
+                    return (segment.Z - gZ, gX - segment.X, Item3: gY - segment.Y);
                 }
             }
             throw new Exception("Segment.Globaldirection not reqognized..");
