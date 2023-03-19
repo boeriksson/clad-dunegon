@@ -1,6 +1,4 @@
 /*
-    Adding diffrent levels to the dunegon
-    Adding stairs between the levels
     Adding a chance for shutes between rooms that overlap the same (x, z)
     Make room span several levels - adding stairs in the rooms where needed to supply this
     Add spiral stair segments that could span several levels
@@ -9,6 +7,8 @@
     Buggar:
 
     Done: 
+    -- Adding stairs between the levels
+    -- Adding diffrent levels to the dunegon
     -- Rollbacks should replace original fork with exit -1, not end with deadends!
     -- Start must be "plugged"
     -- Remove the idea of JoinSegment! Replace with join map in Join and rework to allow for room-room openings

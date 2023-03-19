@@ -383,7 +383,7 @@ namespace Segment {
             this.xLength = xLength;
             this.zLength = zLength;
             type = segmentType;
-            (exits, entry) = GetVariableLengthExits(x, z, y, gDirection, this.xLength, this.zLength, forks);
+            (exits, entry) = GetVariableLengthExits(gDirection, this.xLength, this.zLength, forks);
             tiles = DirectionConversion.GetGlobalCoordinatesFromLocal(GetBoxCoordinates(GetBoxList(new[]{(0, -entry, this.xLength - 1, (this.zLength - 1) - entry, 0, 0)})), X, Z, Y, gDirection);
             space = GetBoxCoordinates(GetBoxList(new []{(-1, (-entry - 1), xLength, this.zLength - entry, 0, 0)}), true);
         }
@@ -408,7 +408,7 @@ namespace Segment {
             AddRemoveExit(addRemoveExit, gDirection,add);
             space = oldRoom.NeededSpace();
         }
-        private (List<SegmentExit>, int entry) GetVariableLengthExits(int x, int z, int y, GlobalDirection gDirection, int xLength, int zLength, int forks) {
+        private (List<SegmentExit>, int entry) GetVariableLengthExits(GlobalDirection gDirection, int xLength, int zLength, int forks) {
             var potentialXExits = GetPotentialExitsByLength(xLength);
             var potentialZExits = GetPotentialExitsByLength(zLength);
             var potentialLocalExits = new List<(int, int, int, LocalDirection)>();
