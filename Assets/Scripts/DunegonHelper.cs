@@ -17,7 +17,7 @@ namespace Dunegon {
 
     public class DunegonHelper {
         private RandomGenerator randomGenerator;
-        private Logger logger = new Logger("Logs/debug");
+        // private Logger logger = new Logger("Logs/debug");
 
         public DunegonHelper() {
             randomGenerator = new DefaultRandom();
@@ -109,7 +109,7 @@ namespace Dunegon {
                 //logger.WriteLine("segment not found ex, returning false..");
                 return false;
             }
-            logger.WriteLine("TooTightLoop startSeg at (" + startSeg.X + ", " + startSeg.Z + ", " + startSeg.Y + ") Type: " + startSeg.Type + " | segment at (" + segment.X + ", " + segment.Z  + ", " + segment.Y  + ") Type: " + segment.Type);
+            //logger.WriteLine("TooTightLoop startSeg at (" + startSeg.X + ", " + startSeg.Z + ", " + startSeg.Y + ") Type: " + startSeg.Type + " | segment at (" + segment.X + ", " + segment.Z  + ", " + segment.Y  + ") Type: " + segment.Type);
             if (segment.X == startSeg.X && segment.Z == startSeg.Z) {
                 //logger.WriteLine("startSeg found - returning true");
                 return true;
@@ -189,16 +189,16 @@ namespace Dunegon {
             var (gX, gZ, gY) = gCoord;
             switch(segment.GlobalDirection) {
                 case GlobalDirection.North: {
-                    return (gX - segment.X, gZ - segment.Z, Item3: gY - segment.Y);
+                    return (gX - segment.X, gZ - segment.Z, gY - segment.Y);
                 }
                 case GlobalDirection.East: {
-                    return (gZ - segment.Z, segment.X - gX, Item3: gY - segment.Y);
+                    return (gZ - segment.Z, segment.X - gX, gY - segment.Y);
                 }
                 case GlobalDirection.South: {
-                    return (segment.X - gX, segment.Z - gZ, Item3: gY - segment.Y);
+                    return (segment.X - gX, segment.Z - gZ, gY - segment.Y);
                 }
                 case GlobalDirection.West: {
-                    return (segment.Z - gZ, gX - segment.X, Item3: gY - segment.Y);
+                    return (segment.Z - gZ, gX - segment.X, gY - segment.Y);
                 }
             }
             throw new Exception("Segment.Globaldirection not reqognized..");

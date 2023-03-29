@@ -286,11 +286,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cornerCurved: {fileID: 919132149155446097, guid: 15f53c17af0c64a438a8b5bf24130ebd, type: 3}
+  celing: {fileID: 919132149155446097, guid: 1612918b69c7c460c92dbeca64cd191b, type: 3}
+  celingCorner: {fileID: 919132149155446097, guid: 59c6841d2e15249e88e5f5c55944cbc5, type: 3}
+  celingCornerLeftExit: {fileID: 919132149155446097, guid: 69c03ba82674442eeb286bc8f6008057, type: 3}
+  celingCornerRightExit: {fileID: 919132149155446097, guid: 1cd921dd2a551417b98d31078f80f189, type: 3}
+  celingCornerLeftRightExit: {fileID: 919132149155446097, guid: ddbf1cb01a30e403d8bf1ec93ecbcb0f, type: 3}
+  celingExit: {fileID: 919132149155446097, guid: ef78313517eac40d6b7adacca5eb8e64, type: 3}
+  celingWall: {fileID: 919132149155446097, guid: b701d235328ce4b00ac80e286a934750, type: 3}
+  corner: {fileID: 919132149155446097, guid: 3f3abb8ddbf7640fcadcb54a43615414, type: 3}
+  cornerLeftExit: {fileID: 919132149155446097, guid: df1a68a385ae5407fbd9c570b777b75a, type: 3}
+  cornerRightExit: {fileID: 919132149155446097, guid: b360c68bbc2714de48389008f5d0a458, type: 3}
+  cornerLeftRightExit: {fileID: 919132149155446097, guid: cb87356208643492f99a488ad06f63d9, type: 3}
+  exit: {fileID: 919132149155446097, guid: f4c7ca549667142db8d0c5c787e2bb92, type: 3}
+  wall: {fileID: 919132149155446097, guid: 157bfbb8979af4bc28e94b519eb30cab, type: 3}
   cornerSquare: {fileID: 919132149155446097, guid: 8604fc41ef8cf4c22b21f569ce2f498c, type: 3}
   cross3: {fileID: 919132149155446097, guid: fab28afb75b4545d19ff84ca4a1746bb, type: 3}
   cross4: {fileID: 919132149155446097, guid: c8de5ce18856e40fd99bb20ca15083c6, type: 3}
   deadEnd: {fileID: 919132149155446097, guid: 8568e613d5caf477fb728922f1cf26a3, type: 3}
-  straight: {fileID: 919132149155446097, guid: df69585b532c54008ad12ebfc98c2f3d, type: 3}
+  floor: {fileID: 919132149155446097, guid: 853a33913be254c6e9ad314d26bed255, type: 3}
   floorCeling: {fileID: 919132149155446097, guid: a1e0d9ff77ddd4328822ebf66b052f11, type: 3}
   floorCelingWall: {fileID: 919132149155446097, guid: 4eda8666bc21e4159a911ce749190ac2, type: 3}
   floorCelingCorner: {fileID: 919132149155446097, guid: 3c9a4fb5a60a544acb34fef47f21c7f2, type: 3}
@@ -298,7 +311,14 @@ MonoBehaviour:
   floorCelingCornerLeftExit: {fileID: 919132149155446097, guid: 54f0a682c270249a8a84600d423df64c, type: 3}
   floorCelingCornerLeftRightExit: {fileID: 919132149155446097, guid: 0aefc45f3af184edb905e35731b31c6c, type: 3}
   floorCelingExit: {fileID: 919132149155446097, guid: 4f7aaece000784f6dbc9165df108ca25, type: 3}
+  floorCorner: {fileID: 919132149155446097, guid: a70da651d033d468b9bea5c002877858, type: 3}
+  floorCornerLeftExit: {fileID: 919132149155446097, guid: 3811609b8f97b4d1a8077891a7b6f7f7, type: 3}
+  floorCornerRightExit: {fileID: 919132149155446097, guid: b52396fd746434f9d96bef643ec9ec3d, type: 3}
+  floorCornerLeftRightExit: {fileID: 919132149155446097, guid: 98b6e93bac7a748b998125598191ee73, type: 3}
+  floorExit: {fileID: 919132149155446097, guid: 00d3ba50ec2744df181de2452916c7aa, type: 3}
+  floorWall: {fileID: 919132149155446097, guid: 554008175fad546b68eb510b94bfe0d8, type: 3}
   start: {fileID: 919132149155446097, guid: cdab0fbfdb2dd42a6acb65aa9c06e7ec, type: 3}
+  straight: {fileID: 919132149155446097, guid: df69585b532c54008ad12ebfc98c2f3d, type: 3}
   straightStairs: {fileID: 919132149155446097, guid: 66fe14ba89c434687a17e0a8e8c6fcc1, type: 3}
   debugText: {fileID: 8476467268667550036, guid: da4fe575c921d4908807c0fc8edc7e6f, type: 3}
 --- !u!1 &963194225

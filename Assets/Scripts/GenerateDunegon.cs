@@ -103,12 +103,12 @@ namespace Dunegon {
             //foreach ((SegmentExit, Segment.Segment) wsEntry in workingSet) {
             var workingSetCount = workingSet.Count;
             for (int i = workingSetCount -1; i >= 0; i--) {
-                Debug.Log("new main loop iteration i = " + i + " workingSet.Count: " + workingSet.Count);
-                printWorkingSet();
+                //Debug.Log("new main loop iteration i = " + i + " workingSet.Count: " + workingSet.Count);
+                //printWorkingSet();
                 var wsEntry = workingSet[i];
                 var segmentStart = wsEntry.Item1;
                 var parentSegment = wsEntry.Item2;
-                Debug.Log("segmentStart: (" + segmentStart.X + ", " + segmentStart.Z + ", " + segmentStart.Y + ")");
+                //Debug.Log("segmentStart: (" + segmentStart.X + ", " + segmentStart.Z + ", " + segmentStart.Y + ")");
                 Segment.Segment segment = dHelper.DecideNextSegment(
                     segmentStart.X,
                     segmentStart.Z,
@@ -119,7 +119,7 @@ namespace Dunegon {
                     workingSet.Count,
                     parentSegment
                 );
-                Debug.Log("MainLoop adding segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
+                //Debug.Log("MainLoop adding segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") Type: " + segment.Type + " ref: " + RuntimeHelpers.GetHashCode(segment));
                 if (!(segment is StopSegment)) {
                     if (segment is JoinSegment) {
                         try {
@@ -141,12 +141,12 @@ namespace Dunegon {
                             Backout(segment);
                         }
                     } else {
-                        Debug.Log("Main loop, adding segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") ref: " + RuntimeHelpers.GetHashCode(segment) + " value at coord in levelMap: " + levelMap.GetValueAtCoordinate((segment.X, segment.Z, segment.Y)));
+                        //Debug.Log("Main loop, adding segment type: " + segment.Type + " at (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") ref: " + RuntimeHelpers.GetHashCode(segment) + " value at coord in levelMap: " + levelMap.GetValueAtCoordinate((segment.X, segment.Z, segment.Y)));
                         
                         if (removeFromNextWorkingSetAfterLoop.Find(coord => (coord.Item1 == segment.X && coord.Item2 == segment.Z)) == default) {
                             bool addSuccess = AddSegment(segment);
                             if (!addSuccess) {
-                                Debug.Log("Fail to Add segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") in mainloop...");
+                                //Debug.Log("Fail to Add segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") in mainloop...");
                                 Backout(segment);
                             } else {
                                 var addOnSegments = segment.GetAddOnSegments();
@@ -155,14 +155,14 @@ namespace Dunegon {
                                         bool addAddSuccess = AddSegment(addSegment);    
                                         if (addAddSuccess) {
                                             AddExitsToNextWorkingSet(nextWorkingSet, addSegment);
-                                            Debug.Log("Added addSegment (" + addSegment.X + ", " + addSegment.Z + ", " + addSegment.Y + ") to nextWorkingSet");
+                                            //Debug.Log("Added addSegment (" + addSegment.X + ", " + addSegment.Z + ", " + addSegment.Y + ") to nextWorkingSet");
                                         } else {
                                             Backout(addSegment.Parent);
                                         }
                                     }
                                 } else {
                                     AddExitsToNextWorkingSet(nextWorkingSet, segment);
-                                    Debug.Log("Added Segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") to nextWorkingSet");
+                                    //Debug.Log("Added Segment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ") to nextWorkingSet");
                                 }
                             }
                         }
@@ -175,11 +175,11 @@ namespace Dunegon {
                 }
             }
             // Remove entry from nextws in case of a join to an active thread
-            Debug.Log("removeFromNextWorkingSetAfterLoop.Count: " + removeFromNextWorkingSetAfterLoop.Count);
+            //Debug.Log("removeFromNextWorkingSetAfterLoop.Count: " + removeFromNextWorkingSetAfterLoop.Count);
             foreach((int x, int z, int y) coord in removeFromNextWorkingSetAfterLoop) {
                 var ix = nextWorkingSet.FindIndex(wsEntry => (wsEntry.Item1.X == coord.x && wsEntry.Item1.Z == coord.z && wsEntry.Item1.Y == coord.y));
                 if (ix > -1) {
-                    Debug.Log("nextWorkingSet - removing entry with coord (" + coord.x + ", " + coord.z + ")");
+                    //Debug.Log("nextWorkingSet - removing entry with coord (" + coord.x + ", " + coord.z + ")");
                     nextWorkingSet.RemoveAt(ix);
                 }
             }
@@ -227,7 +227,7 @@ namespace Dunegon {
         }
 
         private bool AddSegment(Segment.Segment segment) {
-            Debug.Log("AddSegment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ")");
+            //Debug.Log("AddSegment (" + segment.X + ", " + segment.Z + ", " + segment.Y + ")");
             return AddSegment(segment, true);
         }
         private bool AddSegment(Segment.Segment segment, bool scan, string strColor = "white") {
@@ -342,6 +342,7 @@ namespace Dunegon {
                 }
                 segment.Instantiated = instantiatedTiles;
             } else {
+                int ground = segment.Y;
                 var instantiatedGSegments = new List<GameObject>();
                 foreach((int, int, int, GlobalDirection, float, GameObject) gSegment in gSegments) {
                     GameObject iGSegment = Instantiate(gSegment.Item6, new Vector3(gSegment.Item1 * scale, gSegment.Item3 * scale, gSegment.Item2 * scale), Quaternion.identity) as GameObject;
@@ -350,13 +351,16 @@ namespace Dunegon {
                     if (color != null) {
                         iGSegment.GetComponent<Renderer>().material.SetColor("_Color", color);
                     } 
-                    TMP_Text debugText = Instantiate(environmentMgr.debugText, new Vector3(gSegment.Item1 * scale, (gSegment.Item3 * scale) - 0.98f, gSegment.Item2 * scale), Quaternion.identity);
-                    var debugTextComp = debugText.GetComponent<TextMeshPro>();
-                    debugTextComp.SetText("(" + gSegment.Item1 + "," + gSegment.Item2 + ", " + gSegment.Item3 + ")");
-                    debugTextComp.color = new Color32(255, 99, 71, 255);
-                    debugText.transform.Rotate(90f, 90f, 0f, Space.Self);
-                    debugText.transform.SetParent(iGSegment.transform);
+                    if (gSegment.Item3 == ground) {
+                        TMP_Text debugText = Instantiate(environmentMgr.debugText, new Vector3(gSegment.Item1 * scale, (gSegment.Item3 * scale) - 0.98f, gSegment.Item2 * scale), Quaternion.identity);
+                        var debugTextComp = debugText.GetComponent<TextMeshPro>();
+                        debugTextComp.SetText("(" + gSegment.Item1 + "," + gSegment.Item2 + ", " + gSegment.Item3 + ")");
+                        debugTextComp.color = new Color32(255, 99, 71, 255);
+                        debugText.transform.Rotate(90f, 90f, 0f, Space.Self);
+                        debugText.transform.SetParent(iGSegment.transform);
+                    }
 
+                    /*
                     TMP_Text debugRefText = Instantiate(environmentMgr.debugText, new Vector3((gSegment.Item1 * scale) - 0.5f, (gSegment.Item3 * scale) - 0.98f, gSegment.Item2 * scale), Quaternion.identity);
                     var debugRefTextComp = debugRefText.GetComponent<TextMeshPro>();
                     debugRefTextComp.fontSize = 12;
@@ -364,6 +368,7 @@ namespace Dunegon {
                     debugRefTextComp.color = new Color32(20, 20, 20, 255);
                     debugRefText.transform.Rotate(90f, 90f, 0f, Space.Self);
                     debugRefText.transform.SetParent(iGSegment.transform);
+                    */
 
                     instantiatedGSegments.Add(iGSegment);
                 }
@@ -442,16 +447,16 @@ namespace Dunegon {
             yield return null;
         }
         public void ReplaceSegmentWithNewSegmentInWorkingSet(Segment.Segment oldSegment, Segment.Segment newSegment) {
-            Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet start oldSeg Type: " + oldSegment.Type + " (" + oldSegment.X + ", " + oldSegment.Z + ")  newSegment Type: " + newSegment.Type + " (" + newSegment.X + ", " + newSegment.Z + ")");
-            printWorkingSet();
+            //Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet start oldSeg Type: " + oldSegment.Type + " (" + oldSegment.X + ", " + oldSegment.Z + ")  newSegment Type: " + newSegment.Type + " (" + newSegment.X + ", " + newSegment.Z + ")");
+            //printWorkingSet();
             for (int i = 0; i < workingSet.Count; i++) {
                 var wsSegment = workingSet[i].Item2;
                 if (wsSegment != null && wsSegment.X == oldSegment.X && wsSegment.Z == oldSegment.Z) {
                     workingSet[i] = (workingSet[i].Item1, newSegment);
                 }
             }
-            Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet end");
-            printWorkingSet();
+            //Debug.Log("ReplaceSegmentWithNewSegmentInWorkingSet end");
+            //printWorkingSet();
         }
 
         public List<Segment.Segment> GetChildrenOfSegment(Segment.Segment parentSegment) {

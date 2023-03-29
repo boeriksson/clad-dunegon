@@ -357,7 +357,7 @@ namespace Dunegon {
                     if (joiningSegment is Room) {
                         Debug.Log("JoiningSegment IS Room .. Type: " + joiningSegment.Type);
                         var newExit = new SegmentExit(joiningSegment.X, joiningSegment.Z, joiningSegment.Y, joiningSegment.GlobalDirection, le.x, le.z, 0, joiningSide);
-                        Debug.Log("newExit: (" + newExit.X + "," + newExit.Z + ")");
+                        Debug.Log("newExit: (" + newExit.X + "," + newExit.Z + ", " + newExit.Y + ") exit.gDirection: " + newExit.Direction + " joiningSide: " + joiningSide);
                         if (joiningSegment is Room3x3Segment) {
                             return new Room3x3Segment((Room3x3Segment)joiningSegment, newExit, DirectionConversion.GetDirection(joiningSegment.GlobalDirection, joiningSide), true);
                         } else if (joiningSegment is Room3x4Segment) {
